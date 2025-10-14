@@ -1,0 +1,36 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjE2MDk4LCJ0eXBlIjoiYXV0aCIsImtleSI6IjB4RjJGRTRERDlhODZlQ0FmZTIyNDI0QkZiNjA4NTAzNkJjYTc4MzVBOCJ9",
+    "payload": "eyJkb21haW4iOiJyZWJybmQubGF0In0",
+    "signature": "eoBmczudTRqGDdFouVhTMUYVavt9ouB1l3xak2emuR8w0sqQPWgktMxc6/s63T8xix3f6iPx2MsOtA4eBKCuHRs="
+  },
+  "frame": {
+    "version": "1",
+    "name": "REBRND",
+    "iconUrl": "https://github.com/jpfraneto/images/blob/main/LOGO%20BRND%20SQUARE.png?raw=true",
+    "homeUrl": "https://brnd.land",
+    "imageUrl": "https://github.com/jpfraneto/images/blob/main/rebrnd.png?raw=true",
+    "buttonTitle": "REBRND",
+    "splashImageUrl": "https://github.com/jpfraneto/images/blob/main/BRND-FRAME-SPLASH.png?raw=true",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://api.neynar.com/f/app/35999599-3dc3-42c6-b142-5e8e14a1cc10/event",
+    "subtitle": "Showcase your onchain brands",
+    "description": "Community hub to rank on‑chain brands: create podiums, share, earn BRND tokens.",
+    "screenshotUrls": [
+      "https://github.com/jpfraneto/images/blob/main/BRND%20-%20Screenshot%201.png?raw=true",
+      "https://github.com/jpfraneto/images/blob/main/BRND%20-%20Screenshot%202.png?raw=true",
+      "https://github.com/jpfraneto/images/blob/main/BRND%20-%20Screenshot%203.png?raw=true"
+    ],
+    "primaryCategory": "social",
+    "tags": ["brands", "leaderboard", "ranking"],
+    "heroImageUrl": "https://github.com/jpfraneto/images/blob/main/BRND-HERO.png?raw=true",
+    "tagline": "Showcase your onchain brands",
+    "ogTitle": "REBRND",
+    "ogDescription": "Community hub to rank on‑chain brands: create podiums, share, earn BRND tokens.",
+    "ogImageUrl": "https://github.com/jpfraneto/images/blob/main/rebrnd.png?raw=true"
+  },
+  "noindex": true,
+  "baseBuilder": {
+    "allowedAddresses": ["0x77C16fB601Afc7ec0936ea18b2eDFE193DF4AEa8"]
+  }
+}

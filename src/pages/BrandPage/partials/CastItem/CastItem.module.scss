@@ -1,0 +1,49 @@
+// /src/pages/BrandPage/partials/CastItem/CastItem.module.scss
+
+@import "@/styles/index.scss";
+
+.layout {
+  background-color: #ffffff1a;
+  border: 1px solid #2f2f2f;
+  border-radius: 12px;
+  padding: 16px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title,
+.header {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+}
+
+.header {
+  gap: 8px;
+}
+
+.avatar {
+  border-radius: 40px;
+}
+
+.image {
+  width: 100%;
+  object-fit: contain;
+  margin-top: 8px;
+}
+
+.body {
+  p {
+    word-wrap: break-word;
+  }
+}
+
+.external {
+  color: #8a8a8a;
+  margin-left: auto;
+  position: relative;
+  top: -12px;
+}

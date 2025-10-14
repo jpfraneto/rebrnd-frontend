@@ -1,0 +1,733 @@
+@import "@/styles/index.scss";
+
+.container {
+  min-height: 100vh;
+  background-image: url("/src/shared/assets/images/airdrop-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100vw;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.airdropTitle {
+  text-align: center;
+  padding: 20px 0 10px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.airdropTitleText {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 48px !important;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.airdropHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 128px;
+  width: 100%;
+}
+
+.backButton {
+  border-radius: 4px;
+  width: 8%;
+  height: 128px;
+  background: rgba(255, 255, 255, 0.1);
+  border: red solid 1px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  backdrop-filter: blur(10px);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  height: 128px;
+  width: 90%;
+}
+
+.leaderboardCard {
+  background: transparent;
+  border-radius: 4px;
+  border: red solid 1px;
+  height: 128px;
+  width: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 16px;
+  cursor: pointer;
+  padding: 16px;
+  transition: transform 0.2s ease;
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 2;
+}
+
+.pfpBox {
+  height: 100%;
+  aspect-ratio: 1/1;
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userPfp {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid rgba(229, 107, 107, 0.408);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smallPfp {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pfpImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.leaderboardContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rankNumber {
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.leaderboardLabel {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+  color: white;
+}
+
+.pointsDisplay {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.pointsNumber {
+  font-size: 32px;
+  font-weight: bold;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.questionMarkIcon {
+  transform: translateY(8px);
+}
+
+.pointsLabel {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: auto;
+  transform: translateY(6px);
+}
+
+.multipliersSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0;
+  padding: 0 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.howMultipliersWork {
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    color: white;
+  }
+}
+
+.questionMarkIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.multipliersLabel {
+  font-size: 16px;
+  color: white;
+}
+
+.multipliersAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #00d4ff, #0066ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smallAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.questsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px;
+  padding-bottom: 120px;
+  position: relative;
+  z-index: 2;
+}
+
+.questItem {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.questHeader {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.questContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+.questProgressInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.nextTierInfo {
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+.questNumber {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  margin-right: 16px;
+}
+
+.questTitle {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+}
+
+.questProgress {
+  font-size: 14px;
+  color: #dfdfdf;
+  margin-right: 16px;
+}
+
+.questToggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+
+.chevronDown {
+  transform: rotate(-90deg);
+}
+
+.chevronUp {
+  transform: rotate(90deg);
+}
+
+.questDetails {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.challengeDescription {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.descriptionText {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+
+.currentStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.statusLabel {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.statusValue {
+  color: white;
+  font-weight: 600;
+}
+
+.multiplierInfo {
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+.challengeDetails {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid rgba(74, 144, 226, 0.5);
+}
+
+.detailsText {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+
+.tiersSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tiersLabel {
+  color: white;
+  margin-bottom: 8px;
+}
+
+.taskItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.currentTier {
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 6px;
+    padding: 8px 12px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    margin: 4px 0;
+  }
+}
+
+.taskName {
+  flex: 1;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.taskMultiplier {
+  font-size: 20px;
+  color: white;
+  font-weight: 600;
+}
+
+.taskStatus {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  .statusIcon {
+    display: block;
+  }
+
+  &.taskCompleted {
+    background: transparent;
+  }
+}
+
+.checkAirdropButton {
+  background: linear-gradient(45deg, #ff6b35, #ff8e35);
+  border: 2px solid #ff6b35;
+  border-radius: 12px;
+  padding: 16px 24px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 0 20px 20px 20px;
+
+  &:hover {
+    background: linear-gradient(45deg, #ff8e35, #ffb035);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.claimSection {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+}
+
+.claimButton {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 16px 32px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.claimText {
+  color: white;
+  text-align: center;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.modalContent {
+  background-color: black;
+  width: 100vw;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1;
+  }
+
+  > * {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.closeButton {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  width: 32px;
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.modalTitle {
+  color: white;
+  text-align: center;
+  flex: 1;
+}
+
+.yourRankCard {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 107, 53, 0.3) 0%,
+    rgba(255, 142, 53, 0.3) 25%,
+    rgba(74, 144, 226, 0.3) 50%,
+    rgba(144, 19, 254, 0.3) 75%,
+    rgba(0, 212, 255, 0.3) 100%
+  );
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.yourRankLabel {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 16px;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+}
+
+.userRankDisplay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.shareButton {
+  width: 200px;
+  margin: 8px auto;
+}
+
+.shareText {
+  color: white;
+}
+
+.leaderboardList {
+  flex: 1;
+  padding: 0 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.leaderboardLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.leaderboardItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 107, 53, 0.2) 0%,
+    rgba(144, 19, 254, 0.2) 25%,
+    rgba(0, 212, 255, 0.2) 50%,
+    rgba(74, 144, 226, 0.2) 75%,
+    rgba(255, 107, 53, 0.2) 100%
+  );
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  &.highlighted {
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    background: linear-gradient(
+      90deg,
+      rgba(255, 107, 53, 0.4) 0%,
+      rgba(144, 19, 254, 0.4) 25%,
+      rgba(0, 212, 255, 0.4) 50%,
+      rgba(74, 144, 226, 0.4) 75%,
+      rgba(255, 107, 53, 0.4) 100%
+    );
+    transform: scale(1.02);
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.leaderboardRank {
+  min-width: 32px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.leaderboardUser {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.leaderboardName {
+  color: white;
+}
+
+.leaderboardPoints {
+  color: white;
+  font-weight: bold;
+}
+
+.multipliersContent {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.multiplierText {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.emptyStateText {
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+}

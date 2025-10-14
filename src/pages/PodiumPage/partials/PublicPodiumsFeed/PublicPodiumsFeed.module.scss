@@ -1,0 +1,200 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 240px); // Match BrandsList height for proper scrolling
+  overflow: hidden; // Prevent outer scroll
+}
+
+// NEW: Scrollable container wrapper
+.scrollContainer {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  // Smooth scrolling like BrandsList
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none; // Internet Explorer 10+
+
+  &::-webkit-scrollbar {
+    display: none; // Webkit browsers
+  }
+}
+
+.podiumsList {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  padding-bottom: 32px; // Extra padding for scroll loading
+}
+
+.podiumItem {
+  background: black;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px #2f2f2f;
+  border: 1px solid #2f2f2f;
+}
+
+.podiumHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer; // Make clickable for profile viewing
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f0f0f0;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeAgo {
+  color: #666;
+  opacity: 0.8;
+}
+
+.points {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.podiumRow {
+  width: 100%;
+}
+
+.podiumContent {
+  width: 100%;
+}
+
+.podiumGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+// REMOVED: .loadMore and .loadMoreButton (replaced with automatic loading)
+
+// NEW: Loading states for scroll loading
+.loadingMore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loadingText {
+  color: #666;
+  font-size: 12px;
+}
+
+// NEW: End of list indicator
+.endOfList {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 16px;
+}
+
+.endText {
+  color: #666;
+  text-align: center;
+  font-size: 12px;
+}
+
+// REMOVED: .paginationInfo and .paginationText (no longer needed)
+
+// Loading, error, and empty states
+.loading,
+.error,
+.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.retryButton {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    background: #ff5252;
+  }
+}
+
+.emptySubtext {
+  color: #666;
+  max-width: 200px;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .layout {
+    height: calc(100vh - 200px); // Adjust for mobile
+  }
+
+  .podiumsList {
+    padding: 12px;
+    gap: 16px;
+    padding-bottom: 24px;
+  }
+
+  .podiumItem {
+    padding: 12px;
+  }
+
+  .userAvatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .podiumGrid {
+    gap: 8px;
+  }
+
+  .loadingMore {
+    padding: 16px 12px;
+  }
+
+  .endOfList {
+    padding: 16px 12px;
+  }
+}

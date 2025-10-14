@@ -1,0 +1,6 @@
+{
+  "domain": "rebrnd",
+  "buildCommand": "yarn run build",
+  "buildDir": "dist",
+  "siteId": "e1d56435-4925-495f-a3da-479b2f57e3af"
+}

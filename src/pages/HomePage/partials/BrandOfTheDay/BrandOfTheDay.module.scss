@@ -1,0 +1,31 @@
+.feature {
+  position: relative;
+  width: 100%;
+  height: 195px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image {
+  position: absolute;
+  width: 100%;
+  height: 195px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.brand {
+  width: 120px;
+  height: 120px;
+}
+
+.brandCard {
+  div[data-id="container"] {
+    backdrop-filter: blur(4px);
+    background-color: #0a0b0d6b;
+  }
+}

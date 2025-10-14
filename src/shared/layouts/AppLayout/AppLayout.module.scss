@@ -1,0 +1,33 @@
+@import "@/styles/index.scss";
+
+.layout {
+  @include baseLayout();
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 80px;
+
+  // Add smooth scrolling for better UX
+  -webkit-overflow-scrolling: touch;
+}
+
+.bar {
+  position: fixed;
+  width: 100%;
+  @include baseLayout();
+  bottom: 0;
+  z-index: 50;
+  // Add background to prevent content showing through
+  background: var(--background-color, #000);
+  // Add border or shadow for separation
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}

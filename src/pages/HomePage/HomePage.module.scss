@@ -1,0 +1,70 @@
+@import "@/styles/index.scss";
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  @include baseLayout();
+  height: 100vh;
+  overflow: hidden;
+  padding: 0 10px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 36px;
+}
+
+.brandOfTheDaySection {
+  width: 100%;
+}
+
+.tabs {
+  width: 100%;
+  padding-top: 12px;
+}
+
+.periodFilter {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 6px; // 8px above
+  padding-bottom: 8px; // 12px below
+  padding-left: 0;
+}
+
+.disclaimerText {
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  text-align: center;
+  margin: 16px 0;
+  padding: 0 16px;
+  opacity: 0.8;
+}
+
+.link {
+  color: #00ff00;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #00cc00;
+    text-decoration: none;
+    opacity: 0.9;
+  }
+
+  &:active {
+    color: #00aa00;
+    transform: scale(0.98);
+  }
+}

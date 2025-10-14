@@ -1,0 +1,78 @@
+.banner {
+  height: 175px;
+  width: 100%;
+  cursor: pointer;
+  margin-bottom: 0;
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  background: linear-gradient(
+    135deg,
+    #00ff00 0%,
+    #0c00ff 34%,
+    #ff0000 67%,
+    #fff100 100%
+  );
+  color: white;
+  gap: 4px;
+  border-radius: 12px;
+}
+
+.airdropText {
+  font-size: 32px;
+  font-weight: bold;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.leaderboardText {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-bottom: 2px;
+}
+
+.seasonText {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.arrowSection {
+  border-radius: 12px;
+  height: 100%;
+  width: 32px;
+  background: linear-gradient(
+    180deg,
+    #fff100 0%,
+    #ff0000 33%,
+    #0c00ff 66%,
+    #00ff00 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leaderboardTextContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seasonOneText {
+  border: 1px solid white;
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-left: 4px;
+}

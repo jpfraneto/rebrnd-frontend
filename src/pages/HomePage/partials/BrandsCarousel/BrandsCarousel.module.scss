@@ -1,0 +1,40 @@
+@import "@/styles/index.scss";
+
+.carousel {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  width: 100%;
+  flex: 1;
+  transition: opacity 0.5s ease-in-out;
+  position: relative;
+}
+
+.indicators {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+
+.indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.indicator.active {
+  background-color: rgba(255, 255, 255, 1);
+  transform: scale(1.2);
+}
