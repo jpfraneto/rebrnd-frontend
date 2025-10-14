@@ -10,9 +10,8 @@ import styles from "./PeriodBasedBrandsList.module.scss";
 import { useBrandList } from "@/hooks/brands";
 
 // Utils
-import {
-  processBrandsWithSmartScoring,
-} from "@/utils/smartPeriodScoring";
+import { processBrandsWithSmartScoring } from "@/utils/smartPeriodScoring";
+import { useNavigate } from "react-router-dom";
 
 // Assets
 import BrandOfTheWeek from "@/assets/images/brand-of-the-week.svg?react";
@@ -41,7 +40,7 @@ function PeriodBasedBrandsList({
 }: PeriodBasedBrandsListProps) {
   const { data, refetch } = useBrandList("top", "", 1, 5, period);
   const [startY, setStartY] = useState(0);
-
+  const navigate = useNavigate();
   useEffect(() => {
     try {
       refetch();
@@ -54,9 +53,6 @@ function PeriodBasedBrandsList({
     if (!data?.brands) return [];
     return processBrandsWithSmartScoring(data.brands, period);
   }, [data?.brands, period]);
-
-
-
 
   // Swipe functionality
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -87,10 +83,14 @@ function PeriodBasedBrandsList({
   const PeriodSvg = PERIOD_SVGS[period];
   const currentPeriodIndex = PERIODS.indexOf(period);
 
-  const truncateName = (name: string, maxLength: number = 12) => {
+  const truncateName = (name: string, maxLength: number = 16) => {
     return name.length > maxLength
       ? `${name.substring(0, maxLength)}...`
       : name;
+  };
+
+  const handleClickBrand = (id: string) => {
+    navigate(`/brand/${id}`);
   };
 
   return (
@@ -100,7 +100,14 @@ function PeriodBasedBrandsList({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className={styles.leftSection}>
+        <div
+          className={styles.leftSection}
+          onClick={() => {
+            const currentIndex = PERIODS.indexOf(period);
+            const nextIndex = (currentIndex + 1) % PERIODS.length;
+            onPeriodChange(PERIODS[nextIndex]);
+          }}
+        >
           <div className={styles.periodSvg}>
             <PeriodSvg />
           </div>
@@ -110,7 +117,11 @@ function PeriodBasedBrandsList({
           {processedBrands && processedBrands.length > 0 && (
             <ul className={styles.brandsList}>
               {processedBrands.slice(0, 3).map((brand, index) => (
-                <li key={`brand-item-${index}`} className={styles.brandItem}>
+                <li
+                  onClick={() => handleClickBrand(brand.id.toString())}
+                  key={`brand-item-${index}`}
+                  className={styles.brandItem}
+                >
                   <div className={styles.brandInfo}>
                     <img
                       src={brand.imageUrl}
@@ -121,7 +132,7 @@ function PeriodBasedBrandsList({
                       size={14}
                       lineHeight={14}
                       weight="medium"
-                      variant="druk"
+                      variant="geist"
                       className={styles.brandName}
                     >
                       {truncateName(brand.name)}

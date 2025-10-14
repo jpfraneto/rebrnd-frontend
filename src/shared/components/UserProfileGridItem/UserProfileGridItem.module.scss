@@ -8,7 +8,7 @@
   overflow: hidden;
   width: 100%;
   min-height: 120px;
-  aspect-ratio: 1/1; // FIXED: Ensure all grid items are square to match logo
+  aspect-ratio: 1/1;
 
   &.green {
     background: linear-gradient(
@@ -20,9 +20,6 @@
     .container {
       position: relative;
       background: #0a0b0d;
-      .title {
-        color: #fff;
-      }
       &:before {
         content: "";
         position: absolute;
@@ -47,9 +44,6 @@
     .container {
       position: relative;
       background: #0a0b0d;
-      .title {
-        color: #fff;
-      }
       &:before {
         content: "";
         position: absolute;
@@ -74,9 +68,6 @@
     .container {
       position: relative;
       background: #0a0b0d;
-      .title {
-        color: #fff;
-      }
       &:before {
         content: "";
         position: absolute;
@@ -93,20 +84,15 @@
 }
 
 .container {
-  // FIXED: Remove absolute positioning for flexible content
-  // position: absolute;
-  // top: 0;
-  // left: 0;
-  // right: 0;
-  // bottom: 0;
-  padding: 16px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   background-color: #0a0b0d;
   border-radius: 12px;
   overflow: hidden;
-  min-height: inherit; // Inherit min-height from parent
-  height: 100%; // FIXED: Ensure container fills the layout completely
+  min-height: inherit;
+  height: 100%;
+  position: relative;
 
   h5,
   > div {
@@ -115,28 +101,88 @@
   }
 }
 
+.header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: auto;
+}
+
 .title {
   color: #fff;
   text-transform: uppercase;
 }
 
-.header {
+.content {
   display: flex;
-  flex-direction: row;
-  flex-shrink: 0;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: auto;
+  width: 100%;
 }
 
-.right {
-  margin-left: auto;
+.valueSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.mainValue {
+  color: #fff;
+}
+
+.subText {
+  color: #9b92a5;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.linkIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: #9b92a5;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #fff;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 @include isMobile() {
   .layout {
     min-height: 100px;
-    // Keep aspect ratio on mobile too
     aspect-ratio: 1/1;
   }
+
   .container {
     padding: 12px;
+  }
+
+  .mainValue {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  .title {
+    font-size: 9px;
+    line-height: 11px;
+  }
+
+  .linkIcon {
+    width: 20px;
+    height: 20px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
   }
 }

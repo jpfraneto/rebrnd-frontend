@@ -45,7 +45,9 @@ export const router = createBrowserRouter([
         element: <ProfilePage />,
         children: [
           { path: "", element: <ProfilePage /> },
-          { path: "podium", element: <ProfilePage /> },
+          { path: "power", element: <ProfilePage /> },
+          { path: "ranks", element: <ProfilePage /> },
+          { path: "podiums", element: <ProfilePage /> },
         ],
       },
       {

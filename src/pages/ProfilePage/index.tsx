@@ -9,8 +9,12 @@ import styles from "./ProfilePage.module.scss";
 import AppLayout from "@/shared/layouts/AppLayout";
 import MyPodium from "./partials/MyPodium";
 import MyBrands from "./partials/MyBrands";
-import TabNavigator from "@/components/TabNavigator";
+import UserProfile from "./partials/UserProfile";
+import Power from "./partials/Power";
+import Ranks from "./partials/Ranks";
+import ProfileTabNavigator from "@/shared/components/ProfileTabNavigator";
 import PointsHeader from "@/shared/components/PointsHeader";
+import UserProfileHeader from "@/shared/components/UserProfileHeader";
 import Button from "@/shared/components/Button";
 
 // Hocs
@@ -31,10 +35,11 @@ function ProfilePage(): React.ReactNode {
   return (
     <AppLayout>
       <div className={styles.body}>
-        <PointsHeader />
+        {/* <PointsHeader /> */}
+        <UserProfileHeader />
 
         {/* Admin Button - Only show for admin users */}
-        {isAdmin && (
+        {/* {isAdmin && (
           <div className={styles.adminSection}>
             <Button
               caption="🛠️ Admin Panel"
@@ -42,25 +47,35 @@ function ProfilePage(): React.ReactNode {
               onClick={() => navigate("/admin")}
             />
           </div>
-        )}
+        )} */}
 
         <div className={styles.tabs}>
-          <TabNavigator
+          <ProfileTabNavigator
             tabs={[
               {
-                label: "Rank",
+                label: "Profile",
                 path: "/profile",
               },
               {
+                label: "Power",
+                path: "/profile/power",
+              },
+              {
+                label: "Ranks",
+                path: "/profile/ranks",
+              },
+              {
                 label: "Podiums",
-                path: "/profile/podium",
+                path: "/profile/podiums",
               },
             ]}
           />
         </div>
         <Routes>
-          <Route path="/" element={<MyBrands />} />
-          <Route path="/podium" element={<MyPodium />} />
+          <Route path="/" element={<UserProfile />} />
+          <Route path="/power" element={<Power />} />
+          <Route path="/ranks" element={<Ranks />} />
+          <Route path="/podiums" element={<MyPodium />} />
         </Routes>
       </div>
     </AppLayout>

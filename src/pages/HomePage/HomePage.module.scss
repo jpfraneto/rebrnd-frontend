@@ -5,7 +5,7 @@
   flex-direction: column;
   flex: 1;
   @include baseLayout();
-  height: 100vh;
+  height: calc(100vh - 80px);
   overflow: hidden;
   padding: 0 10px;
   margin: 0 auto;
@@ -18,7 +18,6 @@
   flex-direction: column;
   justify-content: center;
   flex-shrink: 0;
-  height: 36px;
 }
 
 .brandOfTheDaySection {

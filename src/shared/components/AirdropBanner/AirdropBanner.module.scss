@@ -1,11 +1,13 @@
 .banner {
-  height: 175px;
+  flex: 1 1 0;
   width: 100%;
+  max-height: 200px;
   cursor: pointer;
   margin-bottom: 0;
   display: flex;
   gap: 8px;
   overflow: hidden;
+  min-height: 0; // allow flexbox child to shrink if needed
 }
 
 .mainContent {
@@ -25,7 +27,7 @@
   );
   color: white;
   gap: 4px;
-  border-radius: 12px;
+  border-radius: 4px;
 }
 
 .airdropText {
@@ -49,7 +51,7 @@
 }
 
 .arrowSection {
-  border-radius: 12px;
+  border-radius: 4px;
   height: 100%;
   width: 32px;
   background: linear-gradient(

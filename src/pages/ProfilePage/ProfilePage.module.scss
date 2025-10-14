@@ -5,10 +5,11 @@
   flex-direction: column;
   flex: 1;
   @include baseLayout();
-  gap: 32px;
-  height: 100vh;
-  overflow: hidden;
-  padding: 0 12px;
+  height: 100%;
+  gap: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px 20px 8px; // Add bottom padding to ensure content is visible
 }
 
 .header {
@@ -20,8 +21,7 @@
 }
 
 .tabs {
-  width: 100%;
-  padding-top: 20px;
+  width: 100vw;
 }
 
 .profile {
