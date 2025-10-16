@@ -16,7 +16,7 @@ import { useAirdropLeaderboard } from "@/shared/hooks/user/useAirdropLeaderboard
 
 // Hocs
 import withProtectionRoute from "@/hocs/withProtectionRoute";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 import CheckLabelIcon from "@/assets/icons/check-label-icon.svg?react";
 import { useAuth } from "@/shared/hooks/auth/useAuth";
 import AirdropSvg from "@/shared/assets/images/airdrop.svg?react";

@@ -18,7 +18,7 @@ import Typography from "../Typography";
 
 // Hooks
 import { useAuth } from "@/hooks/auth";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 interface NavigationBarProps {}
 
@@ -49,8 +49,6 @@ const NavigationBar: React.FC<NavigationBarProps> = () => {
   const handleClickCreate = useCallback(() => {
     sdk.haptics.selectionChanged();
     const currentUnixDate = Math.floor(new Date().getTime() / 1000);
-    sdk.actions.openUrl("https://farcaster.xyz/miniapps/LCSz91mJ8QnP/brnd");
-    return;
     navigate(data?.hasVotedToday ? `/vote/${currentUnixDate}` : "/vote");
   }, [data, navigate]);
 

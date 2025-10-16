@@ -17,7 +17,7 @@ import useDisableScrollBody from "@/hooks/ui/useDisableScrollBody";
 
 // Utils
 import { getBrandScoreVariation } from "@/utils/brand";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 const RankPodiums = () => {
   const navigate = useNavigate();

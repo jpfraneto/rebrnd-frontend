@@ -23,7 +23,7 @@ import ArrowRightIcon from "@/assets/icons/arrow-right.svg?react";
 
 // Hocs
 import withProtectionRoute from "@/hocs/withProtectionRoute";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 /**
  * An array of steps for the welcome page tutorial.

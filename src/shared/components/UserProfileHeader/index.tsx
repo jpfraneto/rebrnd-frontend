@@ -8,15 +8,10 @@ import styles from "./UserProfileHeader.module.scss";
 
 // Components
 import Typography from "@/components/Typography";
-import Button from "@/components/Button";
-import IconButton from "@/components/IconButton";
-
-// Assets
-import GoBackIcon from "@/assets/icons/go-back-icon.svg?react";
 
 // Hooks
 import { useAuth } from "@/hooks/auth";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 interface UserProfileHeaderProps {
   showBackButton?: boolean;
@@ -34,10 +29,6 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
     sdk.haptics.selectionChanged();
     navigate(-1);
   }, [onBackClick, navigate]);
-
-  const handleStake = useCallback(() => {
-    sdk.haptics.selectionChanged();
-  }, []);
 
   const handleSwap = useCallback(() => {
     sdk.haptics.selectionChanged();
@@ -91,7 +82,11 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
           </Typography>
 
           <div className={styles.actions}>
-            <button className={styles.stakeBtn} onClick={handleStake}>
+            {/* Stake Button */}
+            <button
+              onClick={() => navigate("/stake")}
+              className={styles.stakeButton}
+            >
               Stake
             </button>
             <button className={styles.swapBtn} onClick={handleSwap}>

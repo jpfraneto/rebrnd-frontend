@@ -40,16 +40,18 @@ const UserProfile: React.FC = () => {
         />
 
         {/* Favorite Brand */}
-        <UserProfileGridItem variant="red" title="FAVORITE">
+        <UserProfileGridItem variant="red" title="FAV BRAND">
           <div className={styles.brandContent}>
-            <div className={styles.brandIcon}>
-              <div className={styles.brandSphere}></div>
-            </div>
+            <img
+              src="https://wrpcd.net/cdn-cgi/imagedelivery/BXluQx4ige9GuW0Ia56BHw/1b471987-45b1-48e3-6af4-44929b6e4900/anim=false,fit=contain,f=auto,w=576"
+              alt="Favorite Brand"
+              className={styles.brandIcon}
+            />
             <Typography
               as="h3"
-              variant="druk"
-              weight="text-wide"
-              size={16}
+              variant="geist"
+              weight="bold"
+              size={11}
               lineHeight={18}
               className={styles.brandName}
             >

@@ -15,7 +15,7 @@ import { useUserLeaderboard } from "@/shared/hooks/user/useUserLeaderboard";
 import LoaderIndicator from "@/shared/components/LoaderIndicator";
 
 // SDK
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 function LeaderboardFeed() {
   const [currentPage, setCurrentPage] = useState(1);

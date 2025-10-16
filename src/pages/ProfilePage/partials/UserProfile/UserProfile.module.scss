@@ -12,7 +12,7 @@
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   width: 100%;
-  
+
   /* Center the last item if it's alone in the row */
   > :nth-child(7) {
     grid-column: 2;
@@ -46,6 +46,7 @@
   flex: 1;
   text-align: center;
   gap: 8px;
+  padding-bottom: 8px;
 }
 
 .brandIcon {
@@ -71,21 +72,21 @@
   .container {
     padding: 12px 0;
   }
-  
+
   .grid {
     gap: 8px;
   }
-  
+
   .mainNumber {
     font-size: 24px;
     line-height: 28px;
   }
-  
+
   .brandIcon {
     width: 32px;
     height: 32px;
   }
-  
+
   .brandSphere {
     width: 24px;
     height: 24px;

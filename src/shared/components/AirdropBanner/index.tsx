@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "./AirdropBanner.module.scss";
 import Typography from "../Typography";
 import AirdropSvg from "@/shared/assets/images/airdrop.svg?react";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 function AirdropBanner(): React.ReactNode {
   const navigate = useNavigate();

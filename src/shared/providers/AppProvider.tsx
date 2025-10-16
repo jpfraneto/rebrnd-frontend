@@ -10,7 +10,8 @@ import { ModalProvider } from "./ModalProvider";
 import NotificationPrompt from "@/shared/components/NotificationPrompt";
 
 // Farcaster Miniapp Init
-import sdk, { type Context } from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
+import type { Context } from "@farcaster/miniapp-core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Services
@@ -26,7 +27,7 @@ export const AuthContext = createContext<{
   token: string | undefined;
   signIn: () => Promise<void>;
   signOut: () => void;
-  miniappContext: Context.FrameContext | null;
+  miniappContext: Context.MiniAppContext | null;
   isInitialized: boolean;
 }>({
   token: undefined,
@@ -54,7 +55,7 @@ const queryClient = new QueryClient();
 export function AppProvider(): JSX.Element {
   const [token, setToken] = useState<string>();
   const [miniappContext, setMiniappContext] =
-    useState<Context.FrameContext | null>(null);
+    useState<Context.MiniAppContext | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showAddMiniappPrompt, setShowAddMiniappPrompt] = useState(false);
   const [userFid, setUserFid] = useState<number | null>(null);

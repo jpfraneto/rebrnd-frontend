@@ -18,6 +18,7 @@ import RankingPage from "@/pages/RankingPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminPage from "@/pages/AdminPage";
 import AirdropPage from "@/pages/AirdropPage";
+import StakePage from "@/pages/StakePage";
 
 /**
  * Router configuration for Farcaster miniapp.
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
       { path: "/ranking", element: <RankingPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/airdrop", element: <AirdropPage /> },
+      { path: "/stake", element: <StakePage /> },
       { path: "*", element: <NotFoundPage /> },
       { path: "/admin", element: <AdminPage /> },
     ],

@@ -18,7 +18,7 @@ import GoBackIcon from "@/assets/icons/go-back-icon.svg?react";
 
 // Hooks
 import { useAuth } from "@/hooks/auth";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 export const URL_HOW_IT_WORKS = import.meta.env.VITE_APP_HOW_IT_WORKS;
 

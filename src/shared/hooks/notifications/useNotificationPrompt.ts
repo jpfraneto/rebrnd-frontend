@@ -1,7 +1,7 @@
 // src/components/NotificationPrompt/hooks.ts
 
 import { useState, useCallback } from "react";
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 import { NotificationPromptState } from "@/shared/components/NotificationPrompt/types";
 import { markUserPrompted } from "@/shared/utils/notifications";
 

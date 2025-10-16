@@ -13,7 +13,7 @@ import { VotingViewProps } from "../../types";
 import styles from "./AlreadySharedView.module.scss";
 
 // Assets
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 
 interface Place {
   icon: string;

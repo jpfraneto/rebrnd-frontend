@@ -1,0 +1,600 @@
+// StakePage.module.scss
+
+// ============================================
+// VARIABLES
+// ============================================
+$bg-primary: #1c1c1c;
+$bg-secondary: #2a2a2a;
+$bg-dark: #0a0a0a;
+$border-color: #383838;
+$text-primary: #ffffff;
+$text-secondary: #9ca3af;
+$text-muted: #6b7280;
+$green-primary: #00ff00;
+$green-hover: #00dd00;
+$red-primary: #ff0000;
+$red-hover: #dd0000;
+$blue-accent: #3b82f6;
+
+// ============================================
+// CONTAINER
+// ============================================
+.container {
+  min-height: 100vh;
+  background: $bg-primary;
+  color: $text-primary;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  display: flex;
+  flex-direction: column;
+}
+
+// ============================================
+// HEADER
+// ============================================
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.backButton {
+  background: $bg-secondary;
+  color: $text-secondary;
+  border: none;
+  border-radius: 9999px;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 1rem;
+
+  &:hover {
+    background: #3a3a3a;
+    color: $text-primary;
+  }
+}
+
+.headerContent {
+  text-align: center;
+  flex: 1;
+  margin-right: 3.5rem; // Compensate for back button width
+}
+
+.title {
+  color: $text-primary;
+  margin: 0;
+}
+
+.subtitle {
+  color: $text-secondary;
+  margin: 0;
+}
+
+// ============================================
+// CONNECT WALLET SECTION
+// ============================================
+.connectSection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.connectContent {
+  text-align: center;
+  max-width: 20rem;
+}
+
+.connectTitle {
+  color: $text-primary;
+  margin: 0 0 1rem 0;
+}
+
+.connectDescription {
+  color: $text-secondary;
+  margin: 0 0 2rem 0;
+}
+
+.connectButton {
+  background: $green-primary;
+  color: #000000;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  font-size: 1.125rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 15px -3px rgba(0, 255, 0, 0.3);
+
+  &:hover {
+    background: $green-hover;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// ============================================
+// BALANCE SECTION
+// ============================================
+.balanceSection {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.balanceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.balanceCard {
+  background: $bg-secondary;
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid $border-color;
+}
+
+.balanceLabel {
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem 0;
+}
+
+.balanceAmount {
+  color: $text-primary;
+  margin: 0;
+
+  &.staked {
+    color: $green-primary;
+  }
+}
+
+.balanceToken {
+  color: $text-muted;
+  margin: 0.25rem 0 0 0;
+}
+
+// ============================================
+// INFO BANNER
+// ============================================
+.infoContainer {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.infoBanner {
+  background: $bg-secondary;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.infoIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.infoContent {
+  flex: 1;
+}
+
+.infoTitle {
+  color: $text-primary;
+  margin: 0 0 0.5rem 0;
+}
+
+.infoList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  color: $text-secondary;
+
+  li {
+    margin-bottom: 0.375rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// ============================================
+// TABS
+// ============================================
+.tabsContainer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.tab {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  font-weight: 900;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: $bg-secondary;
+  color: $text-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  &:hover:not(:disabled) {
+    background: #3a3a3a;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &.tabActive {
+    background: $green-primary;
+    color: #000000;
+    transform: scale(1.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 255, 0, 0.3);
+  }
+
+  &.tabUnstake {
+    &.tabUnstakeActive {
+      background: $red-primary;
+      color: $text-primary;
+      transform: scale(1.05);
+      box-shadow: 0 10px 15px -3px rgba(255, 0, 0, 0.3);
+    }
+  }
+}
+
+.tabIcon {
+  font-size: 1.125rem;
+}
+
+// ============================================
+// CONTENT
+// ============================================
+.content {
+  padding: 0 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sharesCard {
+  background: $bg-secondary;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid $border-color;
+}
+
+// ============================================
+// INPUT GROUP
+// ============================================
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputLabel {
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.inputWrapper {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  background: $bg-secondary;
+  border: 2px solid $border-color;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  padding-right: 5rem;
+  color: $text-primary;
+  font-size: 1.125rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: #4b5563;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $green-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.inputUnstake:focus {
+    border-color: $red-primary;
+  }
+}
+
+.maxButton {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: $green-primary;
+  color: #000000;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: $green-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.maxButtonUnstake {
+    background: $red-primary;
+    color: $text-primary;
+
+    &:hover:not(:disabled) {
+      background: $red-hover;
+    }
+  }
+}
+
+// ============================================
+// SUBMIT BUTTON
+// ============================================
+.submitButton {
+  width: 100%;
+  background: $green-primary;
+  color: #000000;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 900;
+  font-size: 1.125rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 255, 0, 0.3);
+
+  &:hover:not(:disabled) {
+    background: $green-hover;
+    transform: scale(1.05);
+  }
+
+  &:disabled {
+    background: $bg-secondary;
+    color: #4b5563;
+    cursor: not-allowed;
+    transform: scale(1);
+    box-shadow: none;
+  }
+
+  &.submitButtonUnstake {
+    background: $red-primary;
+    color: $text-primary;
+    box-shadow: 0 10px 15px -3px rgba(255, 0, 0, 0.3);
+
+    &:hover:not(:disabled) {
+      background: $red-hover;
+    }
+  }
+}
+
+.spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ============================================
+// STATUS MESSAGES
+// ============================================
+.errorText {
+  color: #f87171;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pendingText {
+  color: #fbbf24;
+  text-align: center;
+  margin: 0;
+}
+
+// ============================================
+// ERROR BANNER
+// ============================================
+.errorBanner {
+  margin-top: 1rem;
+  background: rgba(248, 113, 113, 0.2);
+  border: 2px solid $red-primary;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.errorIcon {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.errorTitle {
+  color: $text-primary;
+  margin: 0 0 0.25rem 0;
+}
+
+.errorMessage {
+  color: #fca5a5;
+  margin: 0;
+}
+
+// ============================================
+// SUCCESS BANNER
+// ============================================
+.successBanner {
+  margin-top: 1rem;
+  background: rgba(0, 255, 0, 0.2);
+  border: 2px solid $green-primary;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.successIcon {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.successContent {
+  flex: 1;
+}
+
+.successTitle {
+  color: $text-primary;
+  margin: 0 0 0.5rem 0;
+}
+
+.txLink {
+  color: $green-primary;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 700;
+
+  &:hover {
+    color: $green-hover;
+  }
+}
+
+// ============================================
+// FOOTER
+// ============================================
+.footer {
+  padding: 1.5rem;
+  border-top: 2px solid #111111;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin-top: auto;
+}
+
+.footerLink {
+  color: $text-muted;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.footerButton {
+  background: none;
+  border: none;
+  color: $text-muted;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  font-size: 0.75rem;
+  padding: 0;
+
+  &:hover:not(:disabled) {
+    color: $text-primary;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+@media (max-width: 640px) {
+  .header {
+    padding: 1rem 1.5rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    line-height: 1.5rem;
+  }
+
+  .balanceAmount {
+    font-size: 1.25rem;
+    line-height: 1.25rem;
+  }
+
+  .balanceSection,
+  .infoContainer,
+  .tabsContainer,
+  .content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .footer {
+    padding: 1rem;
+  }
+}
