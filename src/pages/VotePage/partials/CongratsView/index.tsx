@@ -13,6 +13,10 @@ import { useAuth } from "@/hooks/auth";
 import { useShareVerification } from "@/hooks/user/useShareVerification";
 import { useContextualTransaction } from "@/shared/hooks/user/useContextualTransaction";
 
+import CheersIcon from "@/shared/assets/icons/cheers.svg?react";
+import VoteHashIcon from "@/shared/assets/icons/vote-hash.svg?react";
+import ExternalLinkIconShare from "@/shared/assets/icons/external-link-icon-share.svg?react";
+
 // Types
 import { VotingViewProps } from "../../types";
 
@@ -269,9 +273,11 @@ export default function CongratsView({
                 {transactionHash && (
                   <div className={styles.transactionChip}>
                     <div className={styles.transactionHeader}>
-                      <span className={styles.transactionIcon}>✓</span>
+                      <span className={styles.transactionIcon}>
+                        <VoteHashIcon />
+                      </span>
                       <span className={styles.transactionText}>
-                        Vote: {transactionHash.slice(0, 6)}...
+                        Vote Txn: {transactionHash.slice(0, 6)}...
                         {transactionHash.slice(-4)}
                       </span>
                       <a
@@ -281,7 +287,7 @@ export default function CongratsView({
                         className={styles.txLink}
                         title="View on Base Explorer"
                       >
-                        ↗
+                        <ExternalLinkIconShare />
                       </a>
                     </div>
                   </div>
@@ -293,9 +299,12 @@ export default function CongratsView({
                   transaction.transactionType === "claim" && (
                     <div className={styles.transactionChip}>
                       <div className={styles.transactionHeader}>
-                        <span className={styles.transactionIcon}>🎉</span>
+                        <span className={styles.transactionIcon}>
+                          <CheersIcon />
+                        </span>
                         <span className={styles.transactionText}>
-                          Claim: {transaction.transactionHash?.slice(0, 6)}...
+                          Claim Txn: {transaction.transactionHash?.slice(0, 6)}
+                          ...
                           {transaction.transactionHash?.slice(-4)}
                         </span>
                         <a
@@ -305,7 +314,7 @@ export default function CongratsView({
                           className={styles.txLink}
                           title="View on Base Explorer"
                         >
-                          ↗
+                          <ExternalLinkIconShare />
                         </a>
                       </div>
                     </div>

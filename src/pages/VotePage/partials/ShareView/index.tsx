@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatUnits } from "viem";
-import { useQueryClient } from "@tanstack/react-query";
 import sdk from "@farcaster/miniapp-sdk";
 
 // Components
@@ -10,9 +9,11 @@ import Typography from "@/components/Typography";
 import Button from "@/components/Button";
 import LoaderIndicator from "@/shared/components/LoaderIndicator";
 
+import Logo from "@/assets/images/logo.svg";
+
 // Hooks
 import { useStoriesInMotion } from "@/shared/hooks/contract/useStoriesInMotion";
-import { useContextualTransaction } from "@/shared/hooks/user/useContextualTransaction";
+import { useAuth } from "@/shared/hooks/auth";
 
 // Types
 import { VotingViewProps, VotingViewEnum } from "../../types";
@@ -32,8 +33,7 @@ export default function ShareView({
   transactionHash,
 }: ShareViewProps) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { transaction, isVoteTransaction } = useContextualTransaction();
+  const { data: authData, updateAuthData } = useAuth();
 
   const {
     verifyShareAndGetClaimSignature,
@@ -46,18 +46,60 @@ export default function ShareView({
     undefined, // onLevelUpSuccess
     undefined, // onVoteSuccess
     // onClaimSuccess
-    (txData) => {
+    async (txData) => {
       console.log("✅ [ShareView] Reward claim successful!", txData);
-      // Invalidate auth query to refresh user data with updated todaysVoteStatus
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      sdk.haptics.notificationOccurred("success");
+
+      const claimTxHash = txData?.txHash;
+      if (!claimTxHash) {
+        console.error(
+          "❌ [ShareView] No transaction hash in claim success data"
+        );
+        return;
+      }
+
+      // Get castHash from claimData or authData
+      const castHash =
+        claimData?.castHash || authData?.todaysVoteStatus?.castHash;
+
+      // Calculate today's day number
+      const now = Math.floor(Date.now() / 1000);
+      const day = Math.floor(now / 86400);
+
+      // Get reward amount from claimData
+      const rewardAmount = claimData?.claimSignature?.amount;
+
+      // Optimistically update auth context immediately with claim transaction
+      updateAuthData({
+        todaysVoteStatus: {
+          hasVoted: true,
+          hasShared: true,
+          hasClaimed: true,
+          voteId: currentVoteId || authData?.todaysVoteStatus?.voteId || null,
+          castHash: castHash || authData?.todaysVoteStatus?.castHash || null,
+          transactionHash:
+            transactionHash ||
+            authData?.todaysVoteStatus?.transactionHash ||
+            null,
+          day: day,
+        },
+        contextualTransaction: {
+          transactionHash: claimTxHash,
+          transactionType: "claim",
+          rewardAmount: rewardAmount,
+          castHash:
+            castHash || authData?.todaysVoteStatus?.castHash || undefined,
+          day: day,
+        },
+      });
+
       // Navigate to congrats view after successful claim
-      // castHash is available from currentBrands context or will be in todaysVoteStatus
       navigateToView?.(
         VotingViewEnum.CONGRATS,
         currentBrands,
         currentVoteId,
         transactionHash,
-        undefined // castHash will be available from todaysVoteStatus after refresh
+        castHash || undefined
       );
     }
   );
@@ -156,9 +198,33 @@ export default function ShareView({
             day: verificationResult.day,
           });
 
-          // Invalidate auth query to refresh todaysVoteStatus (hasShared should now be true)
-          // The castHash will be available in todaysVoteStatus.castHash after backend processes it
-          queryClient.invalidateQueries({ queryKey: ["auth"] });
+          // Calculate today's day number
+          const now = Math.floor(Date.now() / 1000);
+          const day = Math.floor(now / 86400);
+
+          // Optimistically update auth context immediately with cast hash
+          // This ensures UI updates instantly without waiting for backend
+          updateAuthData({
+            todaysVoteStatus: {
+              hasVoted: true,
+              hasShared: true,
+              hasClaimed: false,
+              voteId:
+                currentVoteId || authData?.todaysVoteStatus?.voteId || null,
+              castHash: castHash,
+              transactionHash:
+                transactionHash ||
+                authData?.todaysVoteStatus?.transactionHash ||
+                null,
+              day: day,
+            },
+            contextualTransaction: {
+              transactionHash: null, // No transaction yet - user needs to claim
+              transactionType: null, // Will be 'claim' after claim transaction
+              castHash: castHash, // Add castHash to contextualTransaction
+              day: day,
+            },
+          });
 
           setIsVerifying(false);
 
@@ -276,6 +342,11 @@ export default function ShareView({
 
   return (
     <div className={styles.body}>
+      <div>
+        <div className={styles.center}>
+          <img src={Logo} className={styles.logo} alt="Logo" />
+        </div>
+      </div>
       <div className={styles.container}>
         <Typography
           size={18}
@@ -284,69 +355,22 @@ export default function ShareView({
           weight={"wide"}
           className={styles.title}
         >
-          Share on farcaster
+          Already voted today!
         </Typography>
       </div>
 
-      {/* Show error message if share verification failed */}
-      {shareError && (
-        <div className={styles.errorMessage}>
-          <Typography
-            variant={"geist"}
-            weight={"medium"}
-            size={14}
-            lineHeight={18}
-            textAlign={"center"}
-          >
-            {shareError}
-          </Typography>
-        </div>
-      )}
-
-      {/* Show verification status */}
-      {isVerifying && (
-        <div className={styles.verificationMessage}>
-          <Typography
-            variant={"geist"}
-            weight={"medium"}
-            size={14}
-            lineHeight={18}
-            textAlign={"center"}
-          >
-            🔍 Verifying Share...
-          </Typography>
-        </div>
-      )}
-
       {/* Show vote transaction hash - State 2: User has voted, display the transaction */}
-      {(transactionHash ||
-        (isVoteTransaction && transaction?.transactionHash)) && (
-        <div className={styles.transactionStatus}>
-          <Typography
-            variant={"geist"}
-            weight={"medium"}
-            size={12}
-            lineHeight={16}
-            textAlign={"center"}
-          >
-            ✅ Vote Transaction:{" "}
-            {(transactionHash || transaction?.transactionHash)!.slice(0, 6)}...
-            {(transactionHash || transaction?.transactionHash)!.slice(-4)}
-            <a
-              href={`https://basescan.org/tx/${
-                transactionHash || transaction?.transactionHash
-              }`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.txLink}
-              title="View on Base Explorer"
-            >
-              ↗
-            </a>
-          </Typography>
-        </div>
-      )}
-
+      <div className={styles.shareMessage}>
+        <Typography
+          variant={"geist"}
+          weight={"medium"}
+          size={12}
+          lineHeight={16}
+          textAlign={"center"}
+        >
+          Share your podium to unlock 10x BRND rewards
+        </Typography>
+      </div>
       {/* Show claim ready status */}
       {claimData &&
         !isVerifying &&
@@ -405,15 +429,6 @@ export default function ShareView({
       )}
 
       <div className={styles.box}>
-        <Typography
-          variant={"geist"}
-          weight={"regular"}
-          size={16}
-          lineHeight={20}
-        >
-          I've just created my BRND podium of today:
-        </Typography>
-
         <div className={styles.podium}>
           <Podium
             isAnimated={false}
@@ -422,21 +437,6 @@ export default function ShareView({
           />
 
           <div className={styles.action}>
-            <Typography
-              variant={"geist"}
-              weight={"semiBold"}
-              textAlign={"center"}
-              size={14}
-              lineHeight={10}
-            >
-              {isVerifying
-                ? "Verifying your share..."
-                : showClaimButton
-                ? "Claim your 10x BRND reward"
-                : isClaiming || isClaimPending || isClaimConfirming
-                ? "Claiming your reward..."
-                : "Share to claim your 10x BRND reward"}
-            </Typography>
             <Button
               caption={getButtonState()}
               className={styles.button}

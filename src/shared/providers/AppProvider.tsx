@@ -22,6 +22,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Services
 import { setFarcasterToken } from "../utils/auth";
+import { getMe } from "@/services/auth";
 
 // Utils
 import {
@@ -29,18 +30,38 @@ import {
   markNotificationsEnabled,
 } from "@/shared/utils/notifications";
 
-export const AuthContext = createContext<{
+// Types
+import { User, TodaysVoteStatus, ContextualTransaction } from "@/shared/hooks/user";
+
+// Global flag to ensure /me is only called once per session (for initial load)
+let hasCalledGetMe = false;
+
+export interface AuthContextData {
   token: string | undefined;
   signIn: () => Promise<void>;
   signOut: () => void;
   miniappContext: Context.MiniAppContext | null;
   isInitialized: boolean;
-}>({
+  // Auth data - replaces useAuth hook
+  data: (User & { hasVotedToday: boolean; isNewUser: boolean }) | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+  // Optimistic update function to update auth state immediately
+  updateAuthData: (updates: Partial<User & { hasVotedToday: boolean; isNewUser: boolean }>) => void;
+}
+
+export const AuthContext = createContext<AuthContextData>({
   token: undefined,
   signIn: async () => {},
   signOut: () => {},
   miniappContext: null,
   isInitialized: false,
+  data: undefined,
+  isLoading: false,
+  error: null,
+  refetch: async () => {},
+  updateAuthData: () => {},
 });
 
 const queryClient = new QueryClient();
@@ -65,6 +86,45 @@ export function AppProvider(): JSX.Element {
   const [isInitialized, setIsInitialized] = useState(false);
   const [showAddMiniappPrompt, setShowAddMiniappPrompt] = useState(false);
   const [userFid, setUserFid] = useState<number | null>(null);
+  
+  // Auth data state - replaces React Query in useAuth
+  const [authData, setAuthData] = useState<(User & { hasVotedToday: boolean; isNewUser: boolean }) | undefined>(undefined);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
+  const [authError, setAuthError] = useState<Error | null>(null);
+
+  // Optimistic update function to immediately update auth state
+  const updateAuthData = useCallback((updates: Partial<User & { hasVotedToday: boolean; isNewUser: boolean }>) => {
+    setAuthData((prev) => {
+      if (!prev) return prev;
+      
+      // Deep merge the updates
+      const updated = {
+        ...prev,
+        ...updates,
+        // Handle nested objects
+        todaysVoteStatus: updates.todaysVoteStatus 
+          ? { ...prev.todaysVoteStatus, ...updates.todaysVoteStatus } as TodaysVoteStatus
+          : prev.todaysVoteStatus,
+        contextualTransaction: updates.contextualTransaction !== undefined
+          ? updates.contextualTransaction as ContextualTransaction | null
+          : prev.contextualTransaction,
+        todaysVote: updates.todaysVote !== undefined
+          ? updates.todaysVote
+          : prev.todaysVote,
+      };
+      
+      console.log("🔄 [AuthContext] Optimistically updated auth data:", updates);
+      return updated;
+    });
+  }, []);
+
+  // Refetch function - NO-OP since we only call /me once per session
+  // This is kept for backwards compatibility but does nothing
+  const refetchAuthData = useCallback(async () => {
+    console.log("🚫 [AuthContext] Refetch requested but /me only called once per session - using optimistic updates instead");
+    // Do nothing - we don't refetch /me after initial load
+    // All updates happen via updateAuthData (optimistic updates)
+  }, []);
 
   useEffect(() => {
     async function initMiniapp() {
@@ -88,9 +148,28 @@ export function AppProvider(): JSX.Element {
           setUserFid(context.user.fid);
         }
 
-        // Backend authentication happens automatically when useAuth hook calls /me
-        // The /me endpoint will create/update user and return profile data
-        // We don't prefetch here to avoid redundant calls - useAuth handles it
+        // Call /me endpoint ONLY ONCE during the entire user session
+        if (newToken && !hasCalledGetMe) {
+          hasCalledGetMe = true; // Set flag immediately to prevent any other calls
+          setIsLoadingAuth(true);
+          setAuthError(null);
+          try {
+            console.log("🔄 [AuthContext] Fetching user data via /me endpoint (ONCE PER SESSION)");
+            const userData = await getMe();
+            console.log("✅ [AuthContext] Successfully fetched user data:", userData);
+            setAuthData(userData);
+          } catch (error) {
+            console.error("❌ [AuthContext] Failed to fetch user data:", error);
+            setAuthError(error instanceof Error ? error : new Error("Failed to fetch user data"));
+            // Reset flag on error so user can retry
+            hasCalledGetMe = false;
+          } finally {
+            setIsLoadingAuth(false);
+          }
+        } else if (newToken && hasCalledGetMe) {
+          console.log("🚫 [AuthContext] /me already called this session, skipping");
+        }
+        
         setIsInitialized(true);
 
         // Short delay to let the app settle before showing prompt
@@ -159,8 +238,22 @@ export function AppProvider(): JSX.Element {
       const context = await sdk.context;
       setMiniappContext(context);
 
-      // Clear and refetch auth data - /me will handle user creation/update
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      // For signIn, allow refetch since user explicitly signed in again
+      if (newToken) {
+        setIsLoadingAuth(true);
+        setAuthError(null);
+        try {
+          console.log("🔄 [AuthContext] Refetching user data via /me endpoint (explicit signIn)");
+          const userData = await getMe();
+          console.log("✅ [AuthContext] Successfully refetched user data:", userData);
+          setAuthData(userData);
+        } catch (error) {
+          console.error("❌ [AuthContext] Failed to refetch user data:", error);
+          setAuthError(error instanceof Error ? error : new Error("Failed to refetch user data"));
+        } finally {
+          setIsLoadingAuth(false);
+        }
+      }
     } catch (error) {
       console.error("Failed to sign in:", error);
     }
@@ -172,6 +265,12 @@ export function AppProvider(): JSX.Element {
     setIsInitialized(false);
     setShowAddMiniappPrompt(false);
     setUserFid(null);
+    // Clear auth data
+    setAuthData(undefined);
+    setAuthError(null);
+    setIsLoadingAuth(false);
+    // Reset the global flag so /me can be called again in next session
+    hasCalledGetMe = false;
     // Clear all cached data
     queryClient.clear();
   }, []);
@@ -184,8 +283,13 @@ export function AppProvider(): JSX.Element {
       signOut,
       miniappContext,
       isInitialized,
+      data: authData,
+      isLoading: isLoadingAuth,
+      error: authError,
+      refetch: refetchAuthData,
+      updateAuthData,
     }),
-    [token, signIn, signOut, miniappContext, isInitialized]
+    [token, signIn, signOut, miniappContext, isInitialized, authData, isLoadingAuth, authError, refetchAuthData, updateAuthData]
   );
 
   return (

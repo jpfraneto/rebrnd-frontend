@@ -1,6 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
 import { formatUnits } from "viem";
-import { useQueryClient } from "@tanstack/react-query";
 
 // Components
 import Podium from "@/components/Podium";
@@ -10,9 +9,7 @@ import LoaderIndicator from "@/shared/components/LoaderIndicator";
 
 // Hooks
 import { useStoriesInMotion } from "@/shared/hooks/contract/useStoriesInMotion";
-import { useContextualTransaction } from "@/shared/hooks/user/useContextualTransaction";
 import { useAuth } from "@/shared/hooks/auth";
-import TransactionInfo from "@/shared/components/TransactionInfo";
 
 // Types
 import { VotingViewProps } from "../../types";
@@ -21,12 +18,10 @@ import { VotingViewProps } from "../../types";
 import styles from "./AlreadySharedView.module.scss";
 
 // Assets
-// import sdk from "@farcaster/miniapp-sdk"; // Removed as not used in this component
-
-interface Place {
-  icon: string;
-  name: string;
-}
+import Logo from "@/assets/images/logo.svg";
+import sdk from "@farcaster/miniapp-sdk";
+import VoteHashIcon from "@/shared/assets/icons/vote-hash.svg?react";
+import ExternalLinkIconShare from "@/shared/assets/icons/external-link-icon-share.svg?react";
 
 interface AlreadySharedViewProps extends VotingViewProps {}
 
@@ -36,9 +31,7 @@ export default function AlreadySharedView({
   transactionHash,
   castHash,
 }: AlreadySharedViewProps) {
-  const queryClient = useQueryClient();
-  const { transaction, hasTransaction } = useContextualTransaction();
-  const { data: authData } = useAuth();
+  const { data: authData, updateAuthData } = useAuth();
 
   const {
     getClaimSignatureForSharedVote,
@@ -53,46 +46,60 @@ export default function AlreadySharedView({
     // onClaimSuccess
     async (txData) => {
       console.log("✅ [AlreadySharedView] Reward claim successful!", txData);
+      sdk.haptics.notificationOccurred("success");
+
+      const claimTxHash = txData?.txHash;
+      if (!claimTxHash) {
+        console.error(
+          "❌ [AlreadySharedView] No transaction hash in claim success data"
+        );
+        setIsClaiming(false);
+        setIsLoadingClaimData(false);
+        setClaimError(null);
+        return;
+      }
 
       // Reset local claiming state immediately
       setIsClaiming(false);
       setIsLoadingClaimData(false);
       setClaimError(null);
 
-      // Store the transaction hash and start polling for backend status update
-      if (txData?.txHash) {
-        setClaimTxHash(txData.txHash);
-        setIsWaitingForBackend(true);
-        console.log(
-          "🔄 [AlreadySharedView] Starting to poll for claim status update...",
-          {
-            txHash: txData.txHash,
-          }
-        );
-      }
+      // Calculate today's day number
+      const now = Math.floor(Date.now() / 1000);
+      const day = Math.floor(now / 86400);
 
-      // Invalidate auth query immediately (polling will handle refetching)
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      // Get reward amount from claimData if available
+      const rewardAmount = claimData?.claimSignature?.amount;
 
-      // Do an initial refetch after a short delay to give backend time to process
-      setTimeout(async () => {
-        try {
-          await queryClient.refetchQueries({ queryKey: ["auth"] });
-        } catch (error) {
-          console.error(
-            "❌ [AlreadySharedView] Initial refetch failed:",
-            error
-          );
-        }
-      }, 1500);
+      // Optimistically update auth context immediately with claim transaction
+      updateAuthData({
+        todaysVoteStatus: {
+          hasVoted: true,
+          hasShared: true,
+          hasClaimed: true,
+          voteId: currentVoteId || authData?.todaysVoteStatus?.voteId || null,
+          castHash: castHash || authData?.todaysVoteStatus?.castHash || null,
+          transactionHash:
+            transactionHash ||
+            authData?.todaysVoteStatus?.transactionHash ||
+            null,
+          day: day,
+        },
+        contextualTransaction: {
+          transactionHash: claimTxHash,
+          transactionType: "claim",
+          rewardAmount: rewardAmount,
+          castHash:
+            castHash || authData?.todaysVoteStatus?.castHash || undefined,
+          day: day,
+        },
+      });
     }
   );
 
   const [isLoadingClaimData, setIsLoadingClaimData] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
-  const [isWaitingForBackend, setIsWaitingForBackend] = useState(false);
-  const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
 
   // Check if user has claimed - if so, the state machine should transition to State 4
   // This prevents showing claiming UI when we've already transitioned
@@ -108,59 +115,9 @@ export default function AlreadySharedView({
       setIsClaiming(false);
       setIsLoadingClaimData(false);
       setClaimError(null);
-      setIsWaitingForBackend(false);
-      setClaimTxHash(null);
     }
   }, [hasClaimed]);
 
-  // Poll for claim status update after successful claim transaction
-  useEffect(() => {
-    if (!isWaitingForBackend || !claimTxHash) return;
-
-    const pollForClaimStatus = async () => {
-      try {
-        console.log(
-          "🔄 [AlreadySharedView] Polling for claim status update..."
-        );
-
-        // Invalidate and refetch auth query
-        queryClient.invalidateQueries({ queryKey: ["auth"] });
-        await queryClient.refetchQueries({ queryKey: ["auth"] });
-
-        // The authData will be updated by React Query automatically
-        // The hasClaimed check in the other useEffect will detect the change and stop polling
-      } catch (error) {
-        console.error(
-          "❌ [AlreadySharedView] Error polling for claim status:",
-          error
-        );
-        // Continue polling even on error
-      }
-    };
-
-    // Initial delay to give backend time to process
-    const initialDelay = setTimeout(() => {
-      pollForClaimStatus();
-    }, 2000); // 2 second initial delay
-
-    // Set up polling interval (every 3 seconds)
-    const pollInterval = setInterval(() => {
-      pollForClaimStatus();
-    }, 3000);
-
-    // Stop polling after 60 seconds max
-    const maxPollTimeout = setTimeout(() => {
-      console.warn("⚠️ [AlreadySharedView] Polling timeout - stopping poll");
-      setIsWaitingForBackend(false);
-      setClaimTxHash(null);
-    }, 60000);
-
-    return () => {
-      clearTimeout(initialDelay);
-      clearInterval(pollInterval);
-      clearTimeout(maxPollTimeout);
-    };
-  }, [isWaitingForBackend, claimTxHash, queryClient]);
   const [claimData, setClaimData] = useState<{
     castHash: string;
     claimSignature: {
@@ -295,33 +252,23 @@ export default function AlreadySharedView({
     isLoadingClaimData,
   ]);
 
-  // Safely create places array
-  const places: Place[] =
-    currentBrands && currentBrands.length >= 3
-      ? [
-          {
-            icon: "🥇",
-            name:
-              currentBrands[1]?.profile ||
-              currentBrands[1]?.channel ||
-              currentBrands[1]?.name,
-          },
-          {
-            icon: "🥈",
-            name:
-              currentBrands[0]?.profile ||
-              currentBrands[0]?.channel ||
-              currentBrands[0]?.name,
-          },
-          {
-            icon: "🥉",
-            name:
-              currentBrands[2]?.profile ||
-              currentBrands[2]?.channel ||
-              currentBrands[2]?.name,
-          },
-        ]
-      : [];
+  // Determine button state
+  const getButtonState = () => {
+    if (isLoadingClaimData) return "Authorizing...";
+    if (isClaimPending) return "Confirm in wallet...";
+    if (isClaimConfirming) return "Processing...";
+    if (isClaiming) return "Claiming...";
+    if (claimData) {
+      const claimAmount = parseFloat(
+        formatUnits(BigInt(claimData.claimSignature.amount), 18)
+      );
+      return `Claim ${claimAmount.toFixed(0)} $BRND`;
+    }
+    return "Claim Rewards";
+  };
+
+  const isLoading =
+    isLoadingClaimData || isClaiming || isClaimPending || isClaimConfirming;
 
   // Show loading state if data is missing
   if (!currentBrands || currentBrands.length < 3 || !currentVoteId) {
@@ -336,106 +283,84 @@ export default function AlreadySharedView({
 
   return (
     <div className={styles.body}>
-      <div className={styles.successMessage}>
+      <div>
+        <div className={styles.center}>
+          <img src={Logo} className={styles.logo} alt="Logo" />
+        </div>
+      </div>
+      <div className={styles.container}>
+        <Typography
+          size={18}
+          lineHeight={24}
+          variant={"druk"}
+          weight={"wide"}
+          className={styles.title}
+        >
+          Already voted and shared!
+        </Typography>
+      </div>
+
+      {/* Show share message */}
+      <div className={styles.shareMessage}>
         <Typography
           variant={"geist"}
           weight={"medium"}
-          size={16}
-          lineHeight={20}
+          size={12}
+          lineHeight={16}
           textAlign={"center"}
         >
-          Your vote was created and shared.
-        </Typography>
-        <Typography
-          variant={"geist"}
-          weight={"regular"}
-          size={14}
-          lineHeight={18}
-          textAlign={"center"}
-          className={styles.pointsText}
-        >
-          You can now claim your 10x $BRND rewards.
+          Claim your daily $BRND rewards
         </Typography>
       </div>
 
-      <div className={styles.box}>
-        <Typography
-          variant={"geist"}
-          weight={"regular"}
-          size={16}
-          lineHeight={20}
-        >
-          Your BRND podium of today:
-        </Typography>
-        <div className={styles.places}>
-          {places.map((place, index) => (
+      {/* Show vote transaction if available */}
+      <div className={styles.transactionsContainer}>
+        {transactionHash && (
+          <div className={styles.transactionChip}>
+            <div className={styles.transactionHeader}>
+              <span className={styles.transactionIcon}>
+                <VoteHashIcon />
+              </span>
+              <span className={styles.transactionText}>
+                Vote Txn: {transactionHash.slice(0, 6)}...
+                {transactionHash.slice(-4)}
+              </span>
+              <a
+                href={`https://basescan.org/tx/${transactionHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.txLink}
+                title="View on Base Explorer"
+              >
+                <ExternalLinkIconShare />
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Show claim ready status */}
+      {claimData &&
+        !isLoadingClaimData &&
+        !isClaiming &&
+        !isClaimPending &&
+        !isClaimConfirming && (
+          <div className={styles.verificationMessage}>
             <Typography
-              key={`--place-${index.toString()}`}
               variant={"geist"}
-              weight={"regular"}
-              size={16}
-              lineHeight={20}
+              weight={"medium"}
+              size={14}
+              lineHeight={18}
+              textAlign={"center"}
             >
-              {place.icon} {place.name}
+              ✅ Ready to claim{" "}
+              {parseFloat(
+                formatUnits(BigInt(claimData.claimSignature.amount), 18)
+              ).toFixed(0)}{" "}
+              $BRND
             </Typography>
-          ))}
-        </div>
-
-        <div className={styles.podium}>
-          <Podium
-            isAnimated={false}
-            variant={"readonly"}
-            initial={currentBrands}
-          />
-        </div>
-      </div>
-
-      {/* Show transaction information - State 3: Vote transaction hash always shown */}
-      {transactionHash && (
-        <div className={styles.voteTransactionInfo}>
-          <Typography
-            variant={"geist"}
-            weight={"medium"}
-            size={12}
-            lineHeight={16}
-            textAlign={"center"}
-          >
-            ✅ Vote Transaction: {transactionHash.slice(0, 6)}...
-            {transactionHash.slice(-4)}
-            <a
-              href={`https://basescan.org/tx/${transactionHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.txLink}
-              title="View on Base Explorer"
-            >
-              ↗
-            </a>
-          </Typography>
-        </div>
-      )}
-
-      {castHash && (
-        <div className={styles.castTransactionInfo}>
-          <Typography
-            variant={"geist"}
-            weight={"medium"}
-            size={12}
-            lineHeight={16}
-            textAlign={"center"}
-          >
-            ✅ Cast Hash: {castHash}
-          </Typography>
-        </div>
-      )}
-
-      {/* Show contextual transaction information if available (for claim transactions) */}
-      {hasTransaction && transaction && (
-        <TransactionInfo
-          transaction={transaction}
-          className={styles.transactionInfo}
-        />
-      )}
+          </div>
+        )}
 
       {/* Show claim error */}
       {(claimError || contractError) && (
@@ -452,88 +377,25 @@ export default function AlreadySharedView({
         </div>
       )}
 
-      {/* Show claim status - only show if we have claim data */}
-      {claimData && !isLoadingClaimData && (
-        <div className={styles.claimMessage}>
-          <Typography
-            variant={"geist"}
-            weight={"medium"}
-            size={14}
-            lineHeight={18}
-            textAlign={"center"}
-          >
-            ✅ Ready to claim{" "}
-            {parseFloat(
-              formatUnits(BigInt(claimData.claimSignature.amount), 18)
-            ).toFixed(0)}{" "}
-            $BRND rewards
-          </Typography>
-        </div>
-      )}
-
-      {/* Show claiming status - only if not already claimed */}
-      {!hasClaimed &&
-        (isClaiming ||
-          isClaimPending ||
-          isClaimConfirming ||
-          isWaitingForBackend) && (
-          <div className={styles.claimMessage}>
-            <Typography
-              variant={"geist"}
-              weight={"medium"}
-              size={14}
-              lineHeight={18}
-              textAlign={"center"}
-            >
-              {isClaimPending
-                ? "⏳ Confirm reward claim in wallet..."
-                : isClaimConfirming
-                ? "🔄 Processing reward claim..."
-                : isWaitingForBackend
-                ? "✅ Claim confirmed! Waiting for final confirmation..."
-                : "💰 Claiming your reward..."}
-            </Typography>
-          </div>
-        )}
-
-      {/* Hide claim button if already claimed - state machine will show CongratsView */}
-      {!hasClaimed && !isWaitingForBackend && (
-        <div className={styles.actionGroup}>
-          <Button
-            variant={"primary"}
-            caption={
-              isLoadingClaimData
-                ? "Authorizing..."
-                : isClaimPending
-                ? "Confirm in wallet..."
-                : isClaimConfirming
-                ? "Processing..."
-                : isClaiming
-                ? "Claiming..."
-                : claimData
-                ? `Claim ${parseFloat(
-                    formatUnits(BigInt(claimData.claimSignature.amount), 18)
-                  ).toFixed(0)} $BRND`
-                : "Claim Rewards"
-            }
-            onClick={handleClickClaim}
-            disabled={
-              isLoadingClaimData ||
-              isClaiming ||
-              isClaimPending ||
-              isClaimConfirming
-            }
-            iconLeft={
-              isLoadingClaimData ||
-              isClaiming ||
-              isClaimPending ||
-              isClaimConfirming ? (
-                <LoaderIndicator size={16} />
-              ) : undefined
-            }
+      <div className={styles.box}>
+        <div className={styles.podium}>
+          <Podium
+            isAnimated={false}
+            variant={"readonly"}
+            initial={currentBrands}
           />
+
+          <div className={styles.action}>
+            <Button
+              caption={getButtonState()}
+              className={styles.button}
+              iconLeft={isLoading ? <LoaderIndicator size={16} /> : undefined}
+              onClick={handleClickClaim}
+              disabled={isLoading || !!hasClaimed}
+            />
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

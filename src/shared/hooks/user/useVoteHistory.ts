@@ -11,7 +11,7 @@ import { User, UserVoteHistory } from "./types";
 export const useVoteHistory = (userId: User["fid"], pageId: number) => {
   const votesRef = useRef<Record<string, UserVoteHistory>>({});
   const countRef = useRef<number>(0);
-
+  console.log("THE USER ID", userId);
   const result = useQuery({
     queryKey: ["votesHistory", userId, pageId],
     queryFn: () => getUserVotesHistory(userId, pageId),
@@ -20,6 +20,8 @@ export const useVoteHistory = (userId: User["fid"], pageId: number) => {
     enabled: false,
     placeholderData: (prev) => prev,
   });
+
+  console.log("THE RESULT", result);
 
   if (!result.isError) {
     const votes = result.data?.data || {};

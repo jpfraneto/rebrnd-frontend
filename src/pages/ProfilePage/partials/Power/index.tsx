@@ -531,18 +531,37 @@ const Power: React.FC = () => {
   // Always show levels, regardless of connection/authorization status
   // If not connected or authorized, show default levels with appropriate buttons
 
+  const handleRefresh = async () => {
+    sdk.haptics.selectionChanged();
+    if (userFid) {
+      await loadPowerLevelInfo();
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Typography
-          variant="geist"
-          weight="regular"
-          size={14}
-          lineHeight={10}
-          className={styles.title}
+        <div
+          className={`${styles.refreshButton} ${
+            isLoading ? styles.refreshing : ""
+          }`}
+          onClick={() => {
+            if (!isLoading && userFid) handleRefresh();
+          }}
         >
-          BRND Power:
-        </Typography>
+          {isLoading ? (
+            <LoaderIndicator size={14} />
+          ) : (
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={14}
+              className={styles.refreshLabel}
+            >
+              Refresh
+            </Typography>
+          )}
+        </div>
 
         <div className={styles.perksInfo} onClick={handlePerksClick}>
           <Typography
