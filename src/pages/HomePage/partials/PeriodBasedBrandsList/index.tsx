@@ -38,7 +38,7 @@ function PeriodBasedBrandsList({
   period,
   onPeriodChange,
 }: PeriodBasedBrandsListProps) {
-  const { data, refetch } = useBrandList("top", "", 1, 5, period);
+  const { data, refetch, isLoading } = useBrandList("top", "", 1, 5, period);
   const [startY, setStartY] = useState(0);
   const navigate = useNavigate();
   useEffect(() => {
@@ -114,9 +114,20 @@ function PeriodBasedBrandsList({
         </div>
 
         <div className={styles.rightSection}>
-          {processedBrands && processedBrands.length > 0 && (
-            <ul className={styles.brandsList}>
-              {processedBrands.slice(0, 3).map((brand, index) => (
+          <ul className={styles.brandsList}>
+            {isLoading || !processedBrands || processedBrands.length === 0 ? (
+              // Show skeleton loading state
+              Array.from({ length: 3 }).map((_, index) => (
+                <li key={`skeleton-${index}`} className={styles.brandItem}>
+                  <div className={styles.brandInfo}>
+                    <div className={styles.skeletonImage} />
+                    <div className={styles.skeletonName} />
+                  </div>
+                </li>
+              ))
+            ) : (
+              // Show actual brand data
+              processedBrands.slice(0, 3).map((brand, index) => (
                 <li
                   onClick={() => handleClickBrand(brand.id.toString())}
                   key={`brand-item-${index}`}
@@ -139,9 +150,9 @@ function PeriodBasedBrandsList({
                     </Typography>
                   </div>
                 </li>
-              ))}
-            </ul>
-          )}
+              ))
+            )}
+          </ul>
         </div>
       </div>
 

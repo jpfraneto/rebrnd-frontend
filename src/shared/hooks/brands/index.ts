@@ -4,3 +4,4 @@ export * from "./useBrandsList";
 export * from "./useVoteBrands";
 export * from "./useClaimBrand";
 export * from "./useRecentPodiums";
+export * from "./useOnChainBrand";

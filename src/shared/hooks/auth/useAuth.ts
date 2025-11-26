@@ -1,10 +1,10 @@
 // Dependencies
 import { useQuery } from "@tanstack/react-query";
+import { useContext, useMemo } from "react";
 // Services
 import { getMe } from "@/services/auth";
 // Context
 import { AuthContext } from "@/shared/providers/AppProvider";
-import { useContext } from "react";
 
 /**
  * Custom hook for authentication state management in Farcaster miniapps.
@@ -18,37 +18,51 @@ import { useContext } from "react";
  * The hook only executes when both the QuickAuth token and miniapp context
  * are available, ensuring proper initialization order.
  *
+ * IMPORTANT: This query is configured to only fetch once per app session:
+ * - staleTime: Infinity - Data never becomes stale, so it won't refetch
+ * - refetchOnMount: false - Won't refetch when components mount
+ * - refetchOnWindowFocus: false - Won't refetch on window focus
+ * - refetchOnReconnect: false - Won't refetch on network reconnect
+ * - React Query automatically deduplicates simultaneous requests with the same key
+ *
+ * The query will only execute once when the first component using this hook
+ * mounts with all conditions met (token, miniappContext, isInitialized).
+ * All subsequent components will use the cached data.
+ *
  * @returns Query object containing user data, loading state, and error information
  */
 export const useAuth = () => {
   const { token, miniappContext, isInitialized } = useContext(AuthContext);
 
-  // Check if we should make the request
-  const shouldFetch = !!token && !!miniappContext && isInitialized;
+  const shouldFetch = useMemo(
+    () => !!token && !!miniappContext && isInitialized,
+    [token, miniappContext, isInitialized]
+  );
+  console.log("The token", token);
+  console.log("The miniappContext", miniappContext);
+  console.log("The isInitialized", isInitialized);
+  console.log("The shouldFetch", shouldFetch);
 
   return useQuery({
-    queryKey: ["auth"],
+    // Static query key - doesn't change with token
+    // This ensures all components share the same cached data
+    queryKey: ["auth", "me"],
     queryFn: () => {
-      // Double-check token exists before making request
       if (!token) {
         throw new Error("No authentication token available");
       }
-
       return getMe();
     },
-    retry: (failureCount, error) => {
-      // Don't retry if it's an auth error (401, 403)
-      if (error?.message?.includes("401") || error?.message?.includes("403")) {
-        return false;
-      }
-      return failureCount < 1; // Retry once for other errors
-    },
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    // Only fetch when we have all required data
+    retry: false,
+    // Data never becomes stale - prevents any automatic refetches
+    staleTime: Infinity,
+    // Data never gets garbage collected - keeps it in cache forever
+    gcTime: Infinity,
+    // Only fetch when all conditions are met
     enabled: shouldFetch,
-    // Don't run on window focus if we don't have proper auth
-    refetchOnWindowFocus: shouldFetch,
-    // Don't run on reconnect if we don't have proper auth
-    refetchOnReconnect: shouldFetch,
+    // Disable all automatic refetching behaviors
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 };

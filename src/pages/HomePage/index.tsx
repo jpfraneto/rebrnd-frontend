@@ -23,13 +23,17 @@ function HomePage(): React.ReactNode {
     <AppLayout>
       <div className={styles.body}>
         <div className={styles.header}>
-          <BrandHeader showBackButton={false} showUserProfile={false} />
+          <BrandHeader
+            showBackButton={false}
+            showUserProfile={true}
+            showUserPoints={false}
+          />
         </div>
         <AirdropBanner />
         <CustomLinksFrame />
 
         <div className={styles.brandOfTheDaySection}>
-          <BrandOfTheDay period={selectedPeriod} />
+          <BrandOfTheDay />
         </div>
 
         <div className={styles.brandsListSection}>

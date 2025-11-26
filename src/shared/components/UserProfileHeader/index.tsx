@@ -1,6 +1,6 @@
 // src/shared/components/UserProfileHeader/index.tsx
 
-import React, { useCallback } from "react";
+import React, { useCallback, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 
 // StyleSheet
@@ -11,7 +11,10 @@ import Typography from "@/components/Typography";
 
 // Hooks
 import { useAuth } from "@/hooks/auth";
+import { useContractWagmi } from "@/shared/hooks/contract/useContractWagmi";
+import { useStoriesInMotion } from "@/shared/hooks/contract/useStoriesInMotion";
 import sdk from "@farcaster/miniapp-sdk";
+import { AuthContext } from "@/shared/providers/AppProvider";
 
 interface UserProfileHeaderProps {
   showBackButton?: boolean;
@@ -24,11 +27,57 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const { data } = useAuth();
+  const { miniappContext } = useContext(AuthContext);
+  const isAdmin = [16098, 8109, 5431, 1108951].includes(
+    miniappContext?.user?.fid!
+  );
+
+  // Get blockchain data for BRND balance and staking info
+  const { brndBalance, stakedBrndAmount, isLoadingBrndBalances } =
+    useContractWagmi();
+
+  // Get BRND power level information
+  const { userInfo } = useStoriesInMotion();
+
+  // Helper function to format large numbers
+  const formatBrndAmount = useCallback((amount: string): string => {
+    if (!amount || amount === "0") return "0";
+
+    const numAmount = parseFloat(amount);
+    if (numAmount >= 1000000) {
+      return `${(numAmount / 1000000).toFixed(1)}M`;
+    } else if (numAmount >= 1000) {
+      return `${(numAmount / 1000).toFixed(1)}K`;
+    }
+    return numAmount.toFixed(1);
+  }, []);
+
+  // Get display values with loading states
+  const brndPowerLevel = userInfo?.brndPowerLevel || 0;
+  const displayBalance = isLoadingBrndBalances ? (
+    <>
+      Balance: <span className={styles.loadingBlur}>0.0</span> $BRND
+    </>
+  ) : (
+    `Balance: ${formatBrndAmount(brndBalance)} $BRND`
+  );
+  const displayStaked = isLoadingBrndBalances ? (
+    <>
+      Stake: <span className={styles.loadingBlur}>0.0</span> $BRND
+    </>
+  ) : (
+    `Stake: ${formatBrndAmount(stakedBrndAmount)} $BRND`
+  );
 
   const handleBackClick = useCallback(() => {
     sdk.haptics.selectionChanged();
     navigate(-1);
   }, [onBackClick, navigate]);
+
+  const handleAdmin = useCallback(() => {
+    sdk.haptics.selectionChanged();
+    navigate("/admin");
+  }, [navigate]);
 
   const handleSwap = useCallback(() => {
     sdk.haptics.selectionChanged();
@@ -69,22 +118,25 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
             <img src={data?.photoUrl} alt={data?.username} />
           </div>
           <Typography variant="druk" weight="wide" size={12} lineHeight={12}>
-            LEVEL 0
+            LEVEL {brndPowerLevel}
           </Typography>
         </div>
 
         <div className={styles.infoSection}>
           <Typography variant="geist" weight="medium" size={14} lineHeight={22}>
-            Balance: 10M $BRND
+            {displayBalance}
           </Typography>
           <Typography variant="geist" weight="medium" size={14} lineHeight={22}>
-            Stake: 0M $BRND
+            {displayStaked}
           </Typography>
 
           <div className={styles.actions}>
             {/* Stake Button */}
             <button
-              onClick={() => navigate("/stake")}
+              onClick={() => {
+                sdk.haptics.selectionChanged();
+                navigate("/stake");
+              }}
               className={styles.stakeButton}
             >
               Stake
@@ -92,6 +144,11 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
             <button className={styles.swapBtn} onClick={handleSwap}>
               Swap
             </button>
+            {isAdmin && (
+              <button className={styles.adminBtn} onClick={handleAdmin}>
+                Adm
+              </button>
+            )}
           </div>
         </div>
       </div>

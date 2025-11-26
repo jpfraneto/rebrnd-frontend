@@ -135,3 +135,29 @@
     transform: scale(0.98);
   }
 }
+
+.adminBtn {
+  width: fit-content;
+  padding: 2px 6px;
+  background: #00ff00;
+  background: rgba(0, 255, 0, 0.12);
+  border: 2px solid #00ff00;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+
+  &:hover {
+    background: #2a2a2a;
+    border-color: #00ff00;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.loadingBlur {
+  filter: blur(2px);
+  opacity: 0.6;
+}

@@ -36,16 +36,31 @@ export default function PodiumColumn({ variant, selected, position, onClick }: R
   return (
     <div className={classNames(styles.body, styles[variant], selected && styles.selected)}>
       {selected ? (
-        <button className={styles.field} onClick={onClick}>
-          <div className={styles.image}>
-            <img src={selected.imageUrl} alt={selected.name} />
+        onClick ? (
+          <button className={styles.field} onClick={onClick}>
+            <div className={styles.image}>
+              <img src={selected.imageUrl} alt={selected.name} />
+            </div>
+            <Typography variant={'geist'} textAlign={'center'} className={styles.name} size={14} weight={'bold'}>{selected.name}</Typography>
+          </button>
+        ) : (
+          <div className={styles.field}>
+            <div className={styles.image}>
+              <img src={selected.imageUrl} alt={selected.name} />
+            </div>
+            <Typography variant={'geist'} textAlign={'center'} className={styles.name} size={14} weight={'bold'}>{selected.name}</Typography>
           </div>
-          <Typography variant={'geist'} textAlign={'center'} className={styles.name} size={14} weight={'bold'}>{selected.name}</Typography>
-        </button>
+        )
       ) : (
-        <button className={styles.brand} onClick={onClick}>
-          <AddIcon />
-        </button>
+        onClick ? (
+          <button className={styles.brand} onClick={onClick}>
+            <AddIcon />
+          </button>
+        ) : (
+          <div className={styles.brand}>
+            <AddIcon />
+          </div>
+        )
       )}
       <div>
         <Typography size={64} variant={'druk'} lineHeight={80} weight={'wide'} className={styles.number} textAlign={'center'}>{position}</Typography>

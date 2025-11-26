@@ -1,0 +1,208 @@
+// PerksModal.module.scss - Based on StakePage styling
+
+// ============================================
+// CONTAINER
+// ============================================
+.container {
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 374px;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0 auto;
+  background: #000000;
+  border-radius: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+
+  @media (max-width: 374px) {
+    border-radius: 0;
+    max-width: 100%;
+  }
+}
+
+// ============================================
+// BLUR BACKGROUND
+// ============================================
+.container::before {
+  content: "";
+  position: fixed;
+  width: 100%;
+  max-width: 341px;
+  height: 98%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(
+    90.03deg,
+    rgba(255, 142, 0, 0.5) 7.38%,
+    rgba(255, 0, 0, 0.5) 35.51%,
+    rgba(14, 0, 255, 0.5) 63.64%,
+    rgba(0, 255, 0, 0.5) 92.62%
+  );
+  filter: blur(140px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+// ============================================
+// HEADER
+// ============================================
+.header {
+  position: relative;
+  z-index: 1;
+  padding: 16px;
+  padding-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  flex-shrink: 0;
+}
+
+.closeButton {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  right: 4px;
+  top: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  padding: 0;
+
+  &::before {
+    content: "✕";
+    position: absolute;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  &:hover:not(:disabled) {
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+// ============================================
+// SUBTITLE
+// ============================================
+.subtitle {
+  position: relative;
+  z-index: 1;
+  padding: 0 16px 16px 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+// ============================================
+// CONTENT
+// ============================================
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 0 16px 24px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// ============================================
+// LEVEL CARDS
+// ============================================
+.levelCard {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(0, 0, 0, 0) 99.99%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.levelIcon {
+  flex-shrink: 0;
+}
+
+.iconCircle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(
+      360deg,
+      #eaeaea 0%,
+      rgba(255, 255, 255, 0.8) 50%,
+      #eaeaea 100%
+    ),
+    linear-gradient(
+      191.75deg,
+      #fff000 0%,
+      #ff0000 33%,
+      #0e00ff 66%,
+      #00ff00 100%
+    );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Geist", sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #000000;
+}
+
+.levelInfo {
+  flex: 1;
+}
+
+.perksList {
+  margin: 6px 0 0 0;
+  padding-left: 0;
+  list-style: none;
+  font-family: "Geist", sans-serif;
+  font-size: 13px;
+  color: #ffffff;
+  line-height: 1.4;
+
+  li {
+    position: relative;
+    padding-left: 12px;
+    margin-bottom: 3px;
+
+    &::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}

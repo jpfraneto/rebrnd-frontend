@@ -8,7 +8,33 @@ import styles from "./UserProfile.module.scss";
 import UserProfileGridItem from "@/shared/components/UserProfileGridItem";
 import Typography from "@/components/Typography";
 
+// Hooks
+import { useUserProfile } from "@/shared/hooks/user";
+import { useContextualTransaction } from "@/shared/hooks/user/useContextualTransaction";
+import LoaderIndicator from "@/shared/components/LoaderIndicator";
+import TransactionInfo from "@/shared/components/TransactionInfo";
+
 const UserProfile: React.FC = () => {
+  const { data: profileData, isLoading, error } = useUserProfile();
+  const { transaction, hasTransaction } = useContextualTransaction();
+  console.log("THE PROFILE DATA IS", profileData);
+
+  if (isLoading) {
+    return (
+      <div className={styles.container}>
+        <LoaderIndicator size={30} variant={"fullscreen"} />
+      </div>
+    );
+  }
+
+  if (error || !profileData) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.grid}>Error loading profile data</div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.grid}>
@@ -16,17 +42,21 @@ const UserProfile: React.FC = () => {
         <UserProfileGridItem
           variant="primary"
           title="LEADER BOARD"
-          value="#8"
+          value={`#${profileData.leaderboardPosition}`}
         />
 
         {/* Points */}
-        <UserProfileGridItem variant="green" title="POINTS" value="462" />
+        <UserProfileGridItem
+          variant="green"
+          title="POINTS"
+          value={profileData.currentPoints.toString()}
+        />
 
         {/* Streak */}
         <UserProfileGridItem
           variant="blue"
           title="STREAK"
-          value="22"
+          value={profileData.dailyStreak.toString()}
           subtext="DAYS"
         />
 
@@ -34,49 +64,70 @@ const UserProfile: React.FC = () => {
         <UserProfileGridItem
           variant="primary"
           title="PODIUMS"
-          value="69"
+          value={profileData.totalPodiums.toString()}
           subtext="TOTAL"
-          hasLink={true}
         />
 
         {/* Favorite Brand */}
         <UserProfileGridItem variant="red" title="FAV BRAND">
-          <div className={styles.brandContent}>
-            <img
-              src="https://wrpcd.net/cdn-cgi/imagedelivery/BXluQx4ige9GuW0Ia56BHw/1b471987-45b1-48e3-6af4-44929b6e4900/anim=false,fit=contain,f=auto,w=576"
-              alt="Favorite Brand"
-              className={styles.brandIcon}
-            />
-            <Typography
-              as="h3"
-              variant="geist"
-              weight="bold"
-              size={11}
-              lineHeight={18}
-              className={styles.brandName}
-            >
-              Zora
-            </Typography>
-          </div>
+          {profileData.favoriteBrand ? (
+            <div className={styles.brandContent}>
+              <img
+                src={profileData.favoriteBrand.iconUrl}
+                alt="Favorite Brand"
+                className={styles.brandIcon}
+              />
+              <Typography
+                as="h3"
+                variant="geist"
+                weight="bold"
+                size={11}
+                lineHeight={18}
+                className={styles.brandName}
+              >
+                {profileData.favoriteBrand.name}
+              </Typography>
+            </div>
+          ) : (
+            <div className={styles.brandContent}>
+              <Typography
+                as="h3"
+                variant="geist"
+                weight="bold"
+                size={11}
+                lineHeight={18}
+                className={styles.brandName}
+              >
+                No favorite yet
+              </Typography>
+            </div>
+          )}
         </UserProfileGridItem>
 
         {/* Voted Brands */}
         <UserProfileGridItem
           variant="primary"
           title="VOTED BRANDS"
-          value="27"
-          hasLink={true}
+          subtext="TOTAL"
+          value={profileData.votedBrands.toString()}
         />
 
-        {/* Neymar Score */}
+        {/* Neynar Score */}
         <UserProfileGridItem
           variant="blue"
-          title="NEYNAR"
-          value="0.90"
+          title="NEYNAR SCORE"
+          value={Number(profileData.neynarScore).toFixed(2)}
           subtext="SCORE"
-          hasLink={true}
         />
       </div>
+      
+      {/* Contextual Transaction Information */}
+      {hasTransaction && transaction && (
+        <TransactionInfo 
+          transaction={transaction}
+          className={styles.transactionInfo}
+        />
+      )}
     </div>
   );
 };

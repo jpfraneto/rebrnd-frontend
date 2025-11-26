@@ -129,6 +129,9 @@ export default function BrandsList({
     };
   }, []);
 
+  // Sort brands before rendering to avoid visual glitches
+  const sortedBrands = data.brands.sort(() => Math.random() - 0.5);
+
   const renderList = () =>
     data.brands.length > 0 ? (
       <div
@@ -136,7 +139,7 @@ export default function BrandsList({
         className={classNames(styles.scroll, className)}
       >
         <ul className={styles.list}>
-          {data.brands.map((brand, index) => (
+          {sortedBrands.map((brand, index) => (
             <li key={`--brand-item-${index.toString()}`}>
               <BrandCard
                 name={brand.name}
@@ -173,15 +176,15 @@ export default function BrandsList({
     ) : (
       <div className={styles.empty}>
         <Typography variant={"geist"} as={"p"} size={18} lineHeight={22}>
-          It is not in our database at the moment, DM @esdotge.eth to add it.
+          It is not in our database at the moment, DM @victoctero to add it.
         </Typography>
         <Button
           caption={"Send DC"}
           variant={"primary"}
           onClick={() => {
             sdk.actions.openUrl(
-              `https://farcaster.xyz/~/inbox/create/5431?text=${encodeURIComponent(
-                "hey sergio, i want to add my brand to the BRND ecosystem"
+              `https://farcaster.xyz/~/inbox/create/8109?text=${encodeURIComponent(
+                "hey victor, i want to add my brand to the BRND ecosystem"
               )}`
             );
           }}

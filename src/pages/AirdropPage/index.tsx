@@ -1,6 +1,6 @@
 // Dependencies
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // StyleSheet
 import styles from "./AirdropPage.module.scss";
@@ -13,6 +13,7 @@ import Button from "@/shared/components/Button";
 // Hooks
 import { useAirdropCheck } from "@/shared/hooks/user/useAirdropCheck";
 import { useAirdropLeaderboard } from "@/shared/hooks/user/useAirdropLeaderboard";
+import { useAirdropClaimStatus } from "@/shared/hooks/user/useAirdropClaimStatus";
 
 // Hocs
 import withProtectionRoute from "@/hocs/withProtectionRoute";
@@ -22,6 +23,12 @@ import { useAuth } from "@/shared/hooks/auth/useAuth";
 import AirdropSvg from "@/shared/assets/images/airdrop.svg?react";
 import IncompleteTaskIcon from "@/shared/assets/icons/incomplete-task.svg?react";
 import QuestionMarkIcon from "@/shared/assets/icons/question-mark.svg?react";
+
+// Assets
+import airdropBackgroundImage from "@/shared/assets/images/airdrop-background.png";
+
+// Partials
+import ClaimAirdrop from "./partials/ClaimAirdrop";
 
 const AIRDROP_STORAGE_KEY = "airdrop_data";
 
@@ -37,25 +44,62 @@ const challengeMapping: Record<string, string> = {
   "Pro User": "FARCASTER PRO",
 };
 
-type PageView = "main" | "leaderboard" | "multipliers";
+type PageView = "main" | "leaderboard" | "multipliers" | "claim";
 
 function AirdropPage(): React.ReactNode {
   const navigate = useNavigate();
+  const location = useLocation();
   const [expandedQuest, setExpandedQuest] = useState<number | null>(null);
   const [currentView, setCurrentView] = useState<PageView>("main");
   const [storedData, setStoredData] = useState<any>(null);
   const [shouldFetch, setShouldFetch] = useState(false);
+  const [nowMs, setNowMs] = useState<number>(Date.now());
+  const [airdropState, setAirdropState] = useState<{
+    canClaim: boolean;
+    reason: string;
+    hasClaimed: boolean;
+    eligibleAmount: string | null;
+    isReady: boolean;
+  } | null>(null);
+
+  const AIRDROP_TIMESTAMP_ENV = import.meta.env.VITE_AIRDROP_TIMESTAMP;
+  const AIRDROP_TIMESTAMP = Number(AIRDROP_TIMESTAMP_ENV);
 
   const { data: authData } = useAuth();
-  console.log("THE AUTH DATA IS", authData);
 
-  const { data, isLoading, error, refetch } = useAirdropCheck({
-    enabled: shouldFetch,
-  });
-  console.log("THE AIRDROP DATA IS", data);
+  // Use airdrop data from auth endpoint for fast rendering
+  const airdropData = authData?.airdrop;
+  const hasAirdropData = !!airdropData;
+  const isEligibleForAirdrop = airdropData?.isEligible || false;
+  const snapshotExists = airdropData?.snapshotExists || false;
+  const hasAllocation = !!(
+    airdropData?.tokenAllocation && airdropData.tokenAllocation > 0
+  );
+
+  // Check claim status
+  const {
+    data: claimStatusData,
+    isLoading: isClaimStatusLoading,
+    error: claimStatusError,
+  } = useAirdropClaimStatus({ enabled: true });
+
+  // Memoize options to prevent unnecessary re-renders and recursive calls
+  const airdropCheckOptions = useMemo(
+    () => ({ enabled: shouldFetch }),
+    [shouldFetch]
+  );
+
+  const { data, isLoading, error, refetch } =
+    useAirdropCheck(airdropCheckOptions);
 
   const { data: leaderboardData, isLoading: leaderboardLoading } =
     useAirdropLeaderboard(100);
+
+  // Preload background image on mount
+  useEffect(() => {
+    const img = new Image();
+    img.src = airdropBackgroundImage;
+  }, []);
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -69,6 +113,21 @@ function AirdropPage(): React.ReactNode {
     }
   }, []);
 
+  // Tick every second to update countdown
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  // Handle route changes
+  useEffect(() => {
+    if (location.pathname === "/claim-airdrop") {
+      setCurrentView("claim");
+    } else {
+      setCurrentView("main");
+    }
+  }, [location.pathname]);
+
   // Save data to localStorage when new data arrives
   useEffect(() => {
     if (data) {
@@ -78,6 +137,21 @@ function AirdropPage(): React.ReactNode {
     }
   }, [data]);
 
+  // Update airdrop state based on claim status
+  useEffect(() => {
+    if (claimStatusData?.success) {
+      const { canClaim, reason, hasClaimed, contractStatus, eligibility } =
+        claimStatusData.data;
+      setAirdropState({
+        canClaim,
+        reason,
+        hasClaimed,
+        eligibleAmount: eligibility.amount,
+        isReady: contractStatus.claimingEnabled && contractStatus.merkleRootSet,
+      });
+    }
+  }, [claimStatusData]);
+
   const handleCheckAirdrop = () => {
     sdk.haptics.selectionChanged();
     setShouldFetch(true);
@@ -85,18 +159,26 @@ function AirdropPage(): React.ReactNode {
   };
 
   const handleMultipliersClick = (e: React.MouseEvent) => {
+    sdk.haptics.selectionChanged();
     e.preventDefault();
     e.stopPropagation();
     setCurrentView("multipliers");
   };
 
   const handleLeaderboardClick = (e: React.MouseEvent) => {
+    sdk.haptics.selectionChanged();
     e.preventDefault();
     e.stopPropagation();
     setCurrentView("leaderboard");
   };
 
+  const handleClaimAirdrop = () => {
+    sdk.haptics.selectionChanged();
+    setCurrentView("claim");
+  };
+
   const handleBackToMain = () => {
+    sdk.haptics.selectionChanged();
     if (currentView !== "main") {
       setCurrentView("main");
     } else {
@@ -105,6 +187,7 @@ function AirdropPage(): React.ReactNode {
   };
 
   const toggleQuest = (questId: number) => {
+    sdk.haptics.selectionChanged();
     setExpandedQuest(expandedQuest === questId ? null : questId);
   };
 
@@ -214,6 +297,79 @@ function AirdropPage(): React.ReactNode {
     );
   }
 
+  // Show not eligible screen if snapshot exists but user is not eligible
+  if (hasAirdropData && snapshotExists && !isEligibleForAirdrop) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.airdropTitle}>
+          <AirdropSvg />
+        </div>
+
+        <div className={styles.notEligibleContainer}>
+          <div className={styles.notEligibleMessages}>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              textAlign="center"
+              className={styles.notEligibleText}
+            >
+              We are sorry, but you are out of the 1111 top users on our
+              leaderboard.
+            </Typography>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              textAlign="center"
+              className={styles.notEligibleText}
+            >
+              You are not eligible for the BRND airdrop.
+            </Typography>
+          </div>
+        </div>
+
+        <div className={styles.notEligibleButtonSection}>
+          <Button
+            caption="Back Home"
+            onClick={handleBackToMain}
+            variant="primary"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Show claim view if user is eligible, snapshot exists, and has allocation
+  // OR if current view is explicitly set to claim
+  if (
+    (hasAirdropData &&
+      snapshotExists &&
+      isEligibleForAirdrop &&
+      hasAllocation) ||
+    currentView === "claim"
+  ) {
+    // Prepare airdrop data for ClaimAirdrop component
+    // Use data from /me endpoint if available, otherwise fallback to fetched data
+    const claimAirdropData =
+      hasAirdropData && airdropData
+        ? {
+            calculation: {
+              finalScore: airdropData.airdropScore || 0,
+              leaderboardPosition: airdropData.leaderboardPosition || 0,
+              tokenAllocation: airdropData.tokenAllocation || 0,
+              totalMultiplier: 0, // Not available in /me endpoint, but ClaimAirdrop can handle it
+            },
+          }
+        : currentData;
+
+    return (
+      <ClaimAirdrop airdropData={claimAirdropData} onBack={handleBackToMain} />
+    );
+  }
+
   // Main component with data
   return (
     <div className={styles.container}>
@@ -292,7 +448,10 @@ function AirdropPage(): React.ReactNode {
                   lineHeight={32}
                   className={styles.pointsNumber}
                 >
-                  {currentData?.calculation.finalScore?.toLocaleString() || "—"}
+                  {(hasAirdropData
+                    ? airdropData?.airdropScore
+                    : currentData?.calculation.finalScore
+                  )?.toLocaleString() || "—"}
                 </Typography>
                 <Typography
                   variant="druk"
@@ -311,7 +470,10 @@ function AirdropPage(): React.ReactNode {
                 lineHeight={32}
                 className={styles.rankNumber}
               >
-                #{currentData?.calculation.leaderboardPosition || "—"}
+                #
+                {(hasAirdropData
+                  ? airdropData?.leaderboardPosition
+                  : currentData?.calculation.leaderboardPosition) || "—"}
               </Typography>
             </div>
           </div>
@@ -321,15 +483,17 @@ function AirdropPage(): React.ReactNode {
       {/* Main View - Multipliers Section */}
       {currentView === "main" && currentData && (
         <div className={styles.multipliersSection}>
-          <Typography
-            variant="geist"
-            weight="medium"
-            size={14}
-            lineHeight={20}
-            className={styles.multipliersLabel}
+          <button
+            type="button"
+            className={styles.multipliersTextButton}
+            onClick={handleCheckAirdrop}
+            disabled={isLoading}
           >
-            Multipliers for the airdrop
-          </Typography>
+            Update Multipliers
+            {isLoading && (
+              <span className={styles.loadingSpinner} aria-hidden />
+            )}
+          </button>
           <span onClick={handleMultipliersClick}>
             {" "}
             <Typography
@@ -351,11 +515,17 @@ function AirdropPage(): React.ReactNode {
           <Button
             caption="Share"
             onClick={() => {
+              sdk.haptics.selectionChanged();
               sdk.actions.composeCast({
-                text: `Check out your points for the $BRND airdrop!\n\nMy stats:\nLeaderboard Position: #${
-                  currentData?.calculation.leaderboardPosition || "—"
+                text: `Check out your points for the $BRND airdrop!\n\nMy stats:\n\nLeaderboard Position: #${
+                  (hasAirdropData
+                    ? airdropData?.leaderboardPosition
+                    : currentData?.calculation.leaderboardPosition) || "—"
                 }\nPoints: ${
-                  currentData?.calculation.finalScore?.toLocaleString() || "—"
+                  (hasAirdropData
+                    ? airdropData?.airdropScore
+                    : currentData?.calculation.finalScore
+                  )?.toLocaleString() || "—"
                 }`,
                 embeds: ["https://rebrnd.lat"],
               });
@@ -703,12 +873,150 @@ function AirdropPage(): React.ReactNode {
       {/* Main View - Claim/Check Button */}
       {currentView === "main" && (
         <div className={styles.claimSection}>
-          <Button
-            iconLeft={<CheckLabelIcon />}
-            caption={currentData ? "Refresh Status" : "Check My Status"}
-            onClick={handleCheckAirdrop}
-            loading={isLoading}
-          />
+          {(() => {
+            // Show loading while checking claim status
+            if (isClaimStatusLoading && !airdropState) {
+              return (
+                <Button
+                  iconLeft={<CheckLabelIcon />}
+                  caption="Checking Eligibility..."
+                  loading={true}
+                  disabled={true}
+                  onClick={() => {}}
+                />
+              );
+            }
+
+            // Show error state
+            if (claimStatusError) {
+              return (
+                <Button
+                  iconLeft={<CheckLabelIcon />}
+                  caption="Check Eligibility"
+                  onClick={handleCheckAirdrop}
+                  loading={isLoading}
+                />
+              );
+            }
+
+            // Priority 1: Use new airdrop data from /me endpoint when available
+            if (hasAirdropData && snapshotExists) {
+              if (isEligibleForAirdrop) {
+                // Check if already claimed via claim status
+                if (airdropState?.hasClaimed) {
+                  return (
+                    <Button
+                      iconLeft={<CheckLabelIcon />}
+                      caption="Already Claimed!"
+                      disabled={true}
+                      onClick={() => {}}
+                    />
+                  );
+                }
+
+                // Eligible and can claim
+                return (
+                  <Button
+                    iconLeft={<CheckLabelIcon />}
+                    caption="Claim Airdrop"
+                    onClick={handleClaimAirdrop}
+                    loading={isLoading}
+                  />
+                );
+              } else {
+                // Not eligible
+                return (
+                  <Button
+                    iconLeft={<CheckLabelIcon />}
+                    caption="Not Eligible"
+                    disabled={true}
+                    onClick={() => {}}
+                  />
+                );
+              }
+            }
+
+            // Priority 2: Snapshot doesn't exist yet, show eligibility check
+            if (hasAirdropData && !snapshotExists) {
+              return (
+                <Button
+                  iconLeft={<CheckLabelIcon />}
+                  caption="Check Eligibility"
+                  onClick={handleCheckAirdrop}
+                  loading={isLoading}
+                />
+              );
+            }
+
+            // Priority 3: Fallback to original airdrop state logic for backward compatibility
+            if (airdropState) {
+              // Already claimed
+              if (airdropState.hasClaimed) {
+                return (
+                  <Button
+                    iconLeft={<CheckLabelIcon />}
+                    caption="Already Claimed!"
+                    disabled={true}
+                    onClick={() => {}}
+                  />
+                );
+              }
+
+              // Not eligible
+              if (!airdropState.canClaim && !airdropState.isReady) {
+                return (
+                  <Button
+                    iconLeft={<CheckLabelIcon />}
+                    caption={airdropState.reason}
+                    disabled={true}
+                    onClick={() => {}}
+                  />
+                );
+              }
+
+              // Eligible and can claim
+              if (airdropState.canClaim && airdropState.isReady) {
+                return (
+                  <Button
+                    iconLeft={<CheckLabelIcon />}
+                    caption="Claim Airdrop"
+                    onClick={handleClaimAirdrop}
+                    loading={isLoading}
+                  />
+                );
+              }
+            }
+
+            // Priority 4: Fallback to countdown/eligibility check
+            const nowSeconds = Math.floor(nowMs / 1000);
+            const isLive =
+              AIRDROP_TIMESTAMP > 0 && nowSeconds >= AIRDROP_TIMESTAMP;
+            const remaining = Math.max(AIRDROP_TIMESTAMP - nowSeconds, 0);
+
+            const days = Math.floor(remaining / 86400);
+            const hours = Math.floor((remaining % 86400) / 3600);
+            const minutes = Math.floor((remaining % 3600) / 60);
+            const seconds = remaining % 60;
+
+            const countdownLabel = `${days}d ${String(hours).padStart(
+              2,
+              "0"
+            )}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(
+              2,
+              "0"
+            )}s`;
+
+            return (
+              <Button
+                iconLeft={<CheckLabelIcon />}
+                caption={
+                  isLive ? "Check Eligibility" : `Claim In ${countdownLabel}`
+                }
+                onClick={isLive ? handleCheckAirdrop : handleCheckAirdrop}
+                loading={isLoading}
+              />
+            );
+          })()}
         </div>
       )}
     </div>

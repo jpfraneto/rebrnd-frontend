@@ -14,8 +14,12 @@ import { Brand } from './types';
  * @returns {object} - The query object returned by useQuery, containing the brand data and query status.
  */
 export const useBrand = (id: Brand['id']) => {
+  const numericId = id ? Number(id) : null;
+  const isValidId = numericId !== null && !isNaN(numericId) && numericId > 0;
+  
   return useQuery({
-    queryKey: ['brand', id], 
-    queryFn: () => getBrandById(id!), 
+    queryKey: ['brand', numericId], 
+    queryFn: () => getBrandById(numericId!), 
+    enabled: isValidId,
   });
 };

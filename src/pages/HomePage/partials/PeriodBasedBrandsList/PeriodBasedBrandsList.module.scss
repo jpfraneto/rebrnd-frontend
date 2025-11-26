@@ -109,3 +109,33 @@
 .activeDot {
   background-color: #fff;
 }
+
+/* Skeleton loading styles */
+.skeletonImage {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #444 25%, #555 50%, #444 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.skeletonName {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #444 25%, #555 50%, #444 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  flex: 1;
+  max-width: 120px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

@@ -1,7 +1,7 @@
 .layout {
   position: relative;
-  border: 1px solid #2F2F2F;
-  background: #0A0B0D;
+  border: 1px solid #2f2f2f;
+  background: #0a0b0d;
   border-radius: 12px;
   width: 100%;
   max-width: 500px;
@@ -11,7 +11,13 @@
     inset: 23px;
     position: absolute;
     z-index: 1;
-    background: linear-gradient(90.03deg, #FF9533 7.38%, #FF0000 35.51%, #0C00FF 63.64%, #00FF00 92.62%);
+    background: linear-gradient(
+      90.03deg,
+      #ff9533 7.38%,
+      #ff0000 35.51%,
+      #0c00ff 63.64%,
+      #00ff00 92.62%
+    );
     opacity: 0.25;
     filter: blur(60px);
   }
@@ -20,9 +26,12 @@
 .closeBtn {
   position: absolute;
   right: 0;
-  top: -36px;
-  width: 26px;
-  height: 26px;
+  top: -40px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .container {

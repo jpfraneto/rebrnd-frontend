@@ -81,3 +81,30 @@
   border: 1px solid rgba(255, 68, 68, 0.3);
   border-radius: 8px;
 }
+
+.verificationMessage {
+  padding: 12px 16px;
+  margin: 0 16px;
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+}
+
+.transactionStatus {
+  padding: 8px 12px;
+  margin: 0 16px;
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  
+  .txLink {
+    color: #3b82f6;
+    text-decoration: none;
+    margin-left: 4px;
+    transition: opacity 0.2s ease;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}

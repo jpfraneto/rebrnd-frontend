@@ -1,0 +1,552 @@
+@import "@/styles/index.scss";
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  @include baseLayout();
+  min-height: 100vh;
+  background-image: url("/src/shared/assets/images/airdrop-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100vw;
+  color: white;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.airdropLogo {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 12px;
+
+  // Ensure the animation is centered
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Force constrain the animation container
+  max-width: 120px;
+  max-height: 120px;
+  overflow: hidden;
+
+  // Ensure child divs don't expand beyond bounds
+  & > div {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 120px;
+    max-height: 120px;
+  }
+}
+
+.errorMessage {
+  background-color: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.errorText {
+  color: #ff3b30;
+  text-align: center;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding-top: 0px;
+}
+
+.backBtn {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 36px;
+  height: 36px;
+}
+
+.title {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(173, 216, 230, 1) 100%
+  );
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  letter-spacing: 2px;
+}
+
+.claimCard {
+  flex: 1;
+  display: flex;
+  height: fit-content;
+  flex-direction: column;
+  background: linear-gradient(
+    180deg,
+    rgba(220, 20, 60, 0.3) 0%,
+    rgba(75, 0, 130, 0.3) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.claimCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 60%
+  );
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.leaderboardSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pfpBox {
+  height: 100%;
+  aspect-ratio: 1/1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userPfp {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid rgba(229, 107, 107, 0.408);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pfpImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.leaderboardContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.leaderboardLabelContainer {
+  margin-bottom: 4px;
+}
+
+.leaderboardLabel {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+  color: white;
+}
+
+.pointsDisplay {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.pointsNumber {
+  font-weight: bold;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.pointsLabel {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: auto;
+  transform: translateY(6px);
+  color: white;
+  opacity: 0.9;
+}
+
+.rankNumber {
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.multipliersPill {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  width: 222px;
+  height: 28px;
+  background: linear-gradient(
+      360deg,
+      #eaeaea 0%,
+      rgba(255, 255, 255, 0.8) 50%,
+      #ffffff 100%
+    ),
+    linear-gradient(
+      191.75deg,
+      #fff000 0%,
+      #ff0000 33%,
+      #0e00ff 66%,
+      #00ff00 100%
+    ),
+    #ffffff;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  margin: 0 auto 20px auto;
+  order: 0;
+  flex-grow: 0;
+}
+
+.multipliersText {
+  color: #000000;
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.multipliersValue {
+  font-weight: bold;
+  color: #000000;
+  transform: translateY(-1.5px);
+}
+
+.totalPointsSection {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.totalPointsLabel {
+  color: #ffffff;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  margin-left: 2px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.totalPointsValue {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  font-weight: bold;
+  margin: 0 auto;
+  width: 100%;
+  text-align: center;
+}
+
+.claimableSection {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 8px;
+}
+
+.claimableAmount {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  font-weight: bold;
+  text-align: center;
+  line-height: 0.9;
+}
+
+.claimableAmount.loading {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.electricDigit {
+  display: inline-block;
+  animation: electricGlitch 0.1s infinite;
+  color: #00ff00;
+  text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 15px #00ff00,
+    0 0 20px #00ff00, 0 0 25px #00ff00;
+  filter: drop-shadow(0 0 3px #00ff00);
+}
+
+.blurryLoading {
+  animation: blurryShake 0.1s infinite;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes electricGlitch {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: 1;
+    filter: hue-rotate(0deg) brightness(1);
+  }
+  10% {
+    transform: translateX(-2px) translateY(-1px) scale(1.05);
+    opacity: 0.9;
+    filter: hue-rotate(90deg) brightness(1.2);
+  }
+  20% {
+    transform: translateX(2px) translateY(1px) scale(0.95);
+    opacity: 0.85;
+    filter: hue-rotate(180deg) brightness(0.8);
+  }
+  30% {
+    transform: translateX(-1px) translateY(2px) scale(1.02);
+    opacity: 0.95;
+    filter: hue-rotate(270deg) brightness(1.1);
+  }
+  40% {
+    transform: translateX(1px) translateY(-2px) scale(0.98);
+    opacity: 0.88;
+    filter: hue-rotate(360deg) brightness(0.9);
+  }
+  50% {
+    transform: translateX(-2px) translateY(0) scale(1.03);
+    opacity: 0.92;
+    filter: hue-rotate(90deg) brightness(1.15);
+  }
+  60% {
+    transform: translateX(2px) translateY(0) scale(0.97);
+    opacity: 0.87;
+    filter: hue-rotate(180deg) brightness(0.85);
+  }
+  70% {
+    transform: translateX(0) translateY(-1px) scale(1.01);
+    opacity: 0.93;
+    filter: hue-rotate(270deg) brightness(1.05);
+  }
+  80% {
+    transform: translateX(0) translateY(1px) scale(0.99);
+    opacity: 0.89;
+    filter: hue-rotate(360deg) brightness(0.95);
+  }
+  90% {
+    transform: translateX(-1px) translateY(-1px) scale(1.04);
+    opacity: 0.91;
+    filter: hue-rotate(45deg) brightness(1.1);
+  }
+  100% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: 1;
+    filter: hue-rotate(0deg) brightness(1);
+  }
+}
+
+@keyframes blurryShake {
+  0% {
+    transform: translateX(0);
+    opacity: 0.8;
+  }
+  25% {
+    transform: translateX(-0.5px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateX(0.5px);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translateX(-0.5px);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 0.8;
+  }
+}
+
+.tokenSymbol {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  font-weight: bold;
+  text-align: center;
+}
+
+// Success Screen Styles
+.successCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: fit-content;
+  background: linear-gradient(
+    180deg,
+    rgba(220, 20, 60, 0.3) 0%,
+    rgba(75, 0, 130, 0.3) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 20px 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  gap: 10px;
+}
+
+.successCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 60%
+  );
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.logoContainer {
+  margin-bottom: 32px;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.logoShapes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  width: 40px;
+  height: 40px;
+}
+
+.logoShape1 {
+  background: #ff6b35;
+  border-radius: 2px;
+}
+
+.logoShape2 {
+  background: #d2691e;
+  border-radius: 2px;
+}
+
+.logoShape3 {
+  background: #d2691e;
+  border-radius: 2px;
+}
+
+.logoShape4 {
+  background: #ff6b35;
+  border-radius: 2px;
+}
+
+.successText {
+  color: #ffffff;
+  margin-bottom: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.contextText {
+  color: #ffffff;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.shareButton {
+  width: 100%;
+  max-width: 200px;
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #32cd32;
+  border-radius: 12px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 12px rgba(50, 205, 50, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.shareButton::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.shareButton:hover::before {
+  left: 100%;
+}
+
+.shareButton:hover {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: #00ff00;
+  box-shadow: 0 6px 16px rgba(50, 205, 50, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.shareButton:active {
+  transform: translateY(0);
+}
+
+.airdropTitle {
+  text-align: center;
+  padding: 20px 0 10px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.airdropTitleText {
+  font-size: 48px !important;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}

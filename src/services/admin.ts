@@ -50,7 +50,29 @@ export const getDeploymentInfo = async (): Promise<any> =>
   });
 
 /**
- * Creates a new brand in the system.
+ * Prepares brand metadata and uploads to IPFS.
+ * This function should be called before creating the brand on-chain.
+ *
+ * @param {BrandFormData} brandData - The data for creating the new brand
+ * @returns {Promise<{ metadataHash: string; handle: string; fid: number; walletAddress: string }>}
+ *   A promise that resolves with the IPFS hash and other data needed for on-chain creation
+ */
+export const prepareBrandMetadata = async (
+  brandData: BrandFormData
+): Promise<{
+  metadataHash: string;
+  handle: string;
+  fid: number;
+  walletAddress: string;
+}> =>
+  await request(`${ADMIN_SERVICE}/brands/prepare-metadata`, {
+    method: "POST",
+    body: brandData,
+  });
+
+/**
+ * Creates a new brand in the system (legacy - for backward compatibility).
+ * Note: New implementations should use prepareBrandMetadata + on-chain createBrand instead.
  *
  * @param {BrandFormData} brandData - The data for creating the new brand
  * @returns {Promise<any>} A promise that resolves with the created brand data
@@ -108,5 +130,16 @@ export const getBrands = async (): Promise<any> =>
 
 export const fixWeeklyScores = async (): Promise<any> =>
   await request(`${ADMIN_SERVICE}/fix-weekly-scores`, {
+    method: "GET",
+  });
+
+/**
+ * Takes an airdrop snapshot and creates a merkle root.
+ * This function should be called to generate the snapshot for airdrop distribution.
+ *
+ * @returns {Promise<any>} A promise that resolves with the snapshot and merkle root data
+ */
+export const takeAirdropSnapshotAndCreateMerkleRoot = async (): Promise<any> =>
+  await request(`${ADMIN_SERVICE}/airdrop-snapshot`, {
     method: "GET",
   });

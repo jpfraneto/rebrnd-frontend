@@ -13,6 +13,7 @@ function AirdropBanner(): React.ReactNode {
   sdk.haptics.selectionChanged();
 
   const handleClick = () => {
+    sdk.haptics.selectionChanged();
     navigate("/airdrop");
   };
 

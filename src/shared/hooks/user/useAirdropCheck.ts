@@ -16,7 +16,7 @@ interface UseAirdropCheckOptions {
  */
 export const useAirdropCheck = (options: UseAirdropCheckOptions = {}) => {
   const { enabled = true } = options;
-  
+
   return useQuery<AirdropCheckResponse, Error>({
     queryKey: ["airdrop", "check"],
     queryFn: checkUserAirdrop,

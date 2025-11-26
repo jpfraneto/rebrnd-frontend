@@ -76,7 +76,6 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 12px; // Match your existing padding
 
   // Match your existing scroll styling
   scroll-behavior: smooth;
@@ -199,10 +198,6 @@
     gap: 12px; // Smaller gap on mobile
   }
 
-  .userRankSection {
-    padding: 0 8px;
-  }
-
   .userRankCard {
     padding: 16px;
   }
@@ -214,10 +209,6 @@
 
   .userRankPosition {
     font-size: 48px;
-  }
-
-  .scrollContainer {
-    padding: 0 8px;
   }
 
   .usersList {

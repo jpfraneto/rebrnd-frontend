@@ -10,14 +10,20 @@ import AppLayout from "@/shared/layouts/AppLayout";
 import Typography from "@/components/Typography";
 import Button from "@/shared/components/Button";
 
-import { fixWeeklyScores } from "@/services/admin";
+import {
+  fixWeeklyScores,
+  prepareBrandMetadata,
+  takeAirdropSnapshotAndCreateMerkleRoot,
+} from "@/services/admin";
 
 // Hooks
 import { useAuth } from "@/hooks/auth";
 import { Brand, useBrandList } from "@/hooks/brands";
+import { useStoriesInMotion } from "@/shared/hooks/contract/useStoriesInMotion";
+import { useAccount } from "wagmi";
 
 // Services
-import { createBrand, updateBrand } from "@/services/admin";
+import { updateBrand } from "@/services/admin";
 
 // Simple Admin Brand List Component
 interface AdminBrandsListProps {
@@ -156,6 +162,9 @@ interface BrandFormData {
   profile: string;
   channel: string;
   warpcastUrl?: string;
+  handle?: string; // Brand handle (derived from channelOrProfile or custom)
+  fid?: number; // FID of the brand owner
+  walletAddress?: string; // Wallet address of the brand owner
 }
 
 type AdminStep = "menu" | "form" | "confirm" | "success";
@@ -163,11 +172,36 @@ type AdminStep = "menu" | "form" | "confirm" | "success";
 function AdminPage(): React.ReactNode {
   const navigate = useNavigate();
   const { data: user } = useAuth();
+  const { address: walletAddress, isConnected } = useAccount();
   const [currentStep, setCurrentStep] = useState<AdminStep>("menu");
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [successBrandId, setSuccessBrandId] = useState<number | null>(null);
   const [isFixingScores, setIsFixingScores] = useState<boolean>(false);
+  const [isPreparingMetadata, setIsPreparingMetadata] =
+    useState<boolean>(false);
+  const [isTakingSnapshot, setIsTakingSnapshot] = useState<boolean>(false);
+
+  // Use StoriesInMotion hook for on-chain brand creation
+  const {
+    createBrandOnChain,
+    isCreatingBrand,
+    isPending,
+    isConfirming,
+    error: contractError,
+  } = useStoriesInMotion(
+    undefined, // onAuthorizeSuccess
+    undefined, // onLevelUpSuccess
+    undefined, // onVoteSuccess
+    undefined, // onClaimSuccess
+    (txData) => {
+      // onBrandCreateSuccess
+      console.log("✅ Brand created on-chain successfully!", txData);
+      // Extract brandId from transaction if possible
+      // For now, we'll show success and let user navigate
+      setCurrentStep("success");
+    }
+  );
 
   const [formData, setFormData] = useState<BrandFormData>({
     name: "",
@@ -181,8 +215,27 @@ function AdminPage(): React.ReactNode {
     profile: "",
     channel: "",
     warpcastUrl: "",
+    handle: "", // Will be derived from channelOrProfile
+    fid: user?.fid ? Number(user.fid) : undefined, // Default to current user's FID
+    walletAddress: walletAddress || undefined, // Default to connected wallet
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+
+  // Update formData when user or walletAddress becomes available
+  useEffect(() => {
+    if (user?.fid && !formData.fid) {
+      setFormData((prev) => ({
+        ...prev,
+        fid: Number(user.fid),
+      }));
+    }
+    if (walletAddress && !formData.walletAddress) {
+      setFormData((prev) => ({
+        ...prev,
+        walletAddress: walletAddress,
+      }));
+    }
+  }, [user?.fid, walletAddress]);
 
   // Check admin permissions
   const adminFids = [5431, 16098];
@@ -192,6 +245,27 @@ function AdminPage(): React.ReactNode {
     navigate("/profile");
     return null;
   }
+
+  const handleTakeAirdropSnapshot = async () => {
+    setIsTakingSnapshot(true);
+    try {
+      const result = await takeAirdropSnapshotAndCreateMerkleRoot();
+      alert(
+        `Airdrop snapshot created successfully! ${
+          result.message || JSON.stringify(result)
+        }`
+      );
+    } catch (error: any) {
+      console.error("Error taking airdrop snapshot:", error);
+      alert(
+        `Failed to take airdrop snapshot: ${
+          error.message || "Please try again."
+        }`
+      );
+    } finally {
+      setIsTakingSnapshot(false);
+    }
+  };
 
   const handleFixWeeklyScores = async () => {
     setIsFixingScores(true);
@@ -223,6 +297,9 @@ function AdminPage(): React.ReactNode {
       profile: "",
       channel: "",
       warpcastUrl: "",
+      handle: "",
+      fid: user?.fid ? Number(user.fid) : undefined,
+      walletAddress: walletAddress || undefined,
     });
     setSelectedBrand(null);
     setIsEditing(false);
@@ -282,10 +359,22 @@ function AdminPage(): React.ReactNode {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "queryType" ? parseInt(value) : value,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]:
+          name === "queryType" || name === "fid" || name === "categoryId"
+            ? parseInt(value) || 0
+            : value,
+      };
+
+      // Auto-update handle when channelOrProfile changes
+      if (name === "channelOrProfile") {
+        updated.handle = value.trim().toLowerCase();
+      }
+
+      return updated;
+    });
 
     // Clear error when user starts typing
     if (errors[name]) {
@@ -308,6 +397,22 @@ function AdminPage(): React.ReactNode {
     if (!formData.description.trim()) {
       newErrors.description = true;
     }
+    if (!formData.channelOrProfile.trim()) {
+      newErrors.channelOrProfile = true;
+    }
+
+    // Only validate on-chain fields when creating new brand (not editing)
+    if (!isEditing) {
+      if (!formData.handle || !formData.handle.trim()) {
+        newErrors.handle = true;
+      }
+      if (!formData.fid || formData.fid <= 0) {
+        newErrors.fid = true;
+      }
+      if (!formData.walletAddress) {
+        newErrors.walletAddress = true;
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -328,36 +433,99 @@ function AdminPage(): React.ReactNode {
   };
 
   const handleFinalSubmit = async () => {
+    if (!isConnected || !walletAddress) {
+      alert("Please connect your wallet to create a brand on-chain.");
+      return;
+    }
+
     try {
-      const submitData: BrandFormData = {
-        name: formData.name,
-        url: formData.url,
-        warpcastUrl: formData.url,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-        categoryId: 1,
-        followerCount: 0,
-        queryType: formData.queryType,
-        channelOrProfile: formData.channelOrProfile,
-        profile: formData.profile,
-        channel: formData.channel,
-      };
-
-      let brandId: number;
-
       if (isEditing && selectedBrand) {
-        await updateBrand(selectedBrand.id, submitData);
-        brandId = selectedBrand.id;
-      } else {
-        const response = await createBrand(submitData);
-        brandId = response.id || response.brand?.id || response.data?.id || 0;
-      }
+        // For editing, use the legacy update flow
+        const submitData: BrandFormData = {
+          name: formData.name,
+          url: formData.url,
+          warpcastUrl: formData.url,
+          description: formData.description,
+          imageUrl: formData.imageUrl,
+          categoryId: 1,
+          followerCount: 0,
+          queryType: formData.queryType,
+          channelOrProfile: formData.channelOrProfile,
+          profile: formData.profile,
+          channel: formData.channel,
+        };
 
-      setSuccessBrandId(brandId);
-      setCurrentStep("success");
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Something went wrong. Please try again.");
+        await updateBrand(selectedBrand.id, submitData);
+        setSuccessBrandId(selectedBrand.id);
+        setCurrentStep("success");
+      } else {
+        // For new brands, use the on-chain flow
+        setIsPreparingMetadata(true);
+
+        // Step 1: Prepare metadata and upload to IPFS via backend
+        const submitData: BrandFormData = {
+          name: formData.name,
+          url: formData.url,
+          warpcastUrl: formData.url,
+          description: formData.description,
+          imageUrl: formData.imageUrl,
+          categoryId: 1,
+          followerCount: 0,
+          queryType: formData.queryType,
+          channelOrProfile: formData.channelOrProfile,
+          profile: formData.profile,
+          channel: formData.channel,
+          handle:
+            formData.handle || formData.channelOrProfile.trim().toLowerCase(),
+          fid: formData.fid || (user?.fid ? Number(user.fid) : 0),
+          walletAddress: formData.walletAddress || walletAddress,
+        };
+
+        console.log("📤 [Admin] Preparing brand metadata...", submitData);
+        const metadataResult = await prepareBrandMetadata(submitData);
+        console.log("✅ [Admin] Metadata prepared:", metadataResult);
+
+        setIsPreparingMetadata(false);
+
+        // Step 2: Create brand on-chain with IPFS hash
+        if (!metadataResult.metadataHash) {
+          throw new Error("Failed to get IPFS hash from backend");
+        }
+
+        const handle =
+          metadataResult.handle ||
+          submitData.handle ||
+          submitData.channelOrProfile.trim().toLowerCase();
+        const fid =
+          metadataResult.fid ||
+          submitData.fid ||
+          (user?.fid ? Number(user.fid) : 0);
+        const brandWalletAddress =
+          metadataResult.walletAddress ||
+          submitData.walletAddress ||
+          walletAddress;
+
+        console.log("📤 [Admin] Creating brand on-chain...", {
+          handle,
+          metadataHash: metadataResult.metadataHash,
+          fid,
+          walletAddress: brandWalletAddress,
+        });
+
+        await createBrandOnChain(
+          handle,
+          metadataResult.metadataHash,
+          fid,
+          brandWalletAddress
+        );
+
+        // Success will be handled by onBrandCreateSuccess callback
+        // which will set currentStep to "success"
+      }
+    } catch (error: any) {
+      console.error("❌ [Admin] Error:", error);
+      setIsPreparingMetadata(false);
+      alert(error.message || "Something went wrong. Please try again.");
     }
   };
 
@@ -378,6 +546,17 @@ function AdminPage(): React.ReactNode {
           </div>
 
           <div className={styles.menuActions}>
+            <Button
+              caption={
+                isTakingSnapshot
+                  ? "⏳ Creating Snapshot..."
+                  : "📸 AIRDROP SNAPSHOT"
+              }
+              variant="primary"
+              onClick={handleTakeAirdropSnapshot}
+              className={styles.bigButton}
+              disabled={isTakingSnapshot}
+            />
             <Button
               caption="➕ Add New Brand"
               variant="primary"
@@ -557,22 +736,123 @@ function AdminPage(): React.ReactNode {
                   placeholder={
                     formData.queryType === 0 ? "e.g., founders" : "e.g., dwr"
                   }
-                  className={styles.input}
+                  className={`${styles.input} ${
+                    errors.channelOrProfile ? styles.inputError : ""
+                  }`}
                 />
                 <Typography size={12} className={styles.helpText}>
                   {formData.queryType === 0
                     ? "The Farcaster channel name (without /)"
                     : "The Farcaster username (without @)"}
                 </Typography>
+                {errors.channelOrProfile && (
+                  <Typography size={12} className={styles.errorText}>
+                    Channel/Profile name is required
+                  </Typography>
+                )}
               </div>
-            </div>
 
-            <div className={styles.formActions}>
-              <Button
-                caption="Continue →"
-                variant="primary"
-                onClick={proceedToConfirm}
-              />
+              {!isEditing && (
+                <>
+                  <div className={styles.field}>
+                    <Typography size={16} weight="medium">
+                      Brand Handle *
+                    </Typography>
+                    <input
+                      type="text"
+                      name="handle"
+                      value={
+                        formData.handle ||
+                        formData.channelOrProfile.trim().toLowerCase()
+                      }
+                      onChange={handleInputChange}
+                      placeholder="e.g., founders"
+                      className={`${styles.input} ${
+                        errors.handle ? styles.inputError : ""
+                      }`}
+                    />
+                    <Typography size={12} className={styles.helpText}>
+                      Unique handle for the brand (auto-filled from
+                      channel/profile)
+                    </Typography>
+                    {errors.handle && (
+                      <Typography size={12} className={styles.errorText}>
+                        Brand handle is required
+                      </Typography>
+                    )}
+                  </div>
+
+                  <div className={styles.field}>
+                    <Typography size={16} weight="medium">
+                      Brand Owner FID *
+                    </Typography>
+                    <input
+                      type="number"
+                      name="fid"
+                      value={formData.fid || ""}
+                      onChange={handleInputChange}
+                      placeholder={
+                        user?.fid ? user.fid.toString() : "e.g., 12345"
+                      }
+                      className={`${styles.input} ${
+                        errors.fid ? styles.inputError : ""
+                      }`}
+                    />
+                    <Typography size={12} className={styles.helpText}>
+                      Farcaster ID of the brand owner (defaults to your FID)
+                    </Typography>
+                    {errors.fid && (
+                      <Typography size={12} className={styles.errorText}>
+                        Valid FID is required
+                      </Typography>
+                    )}
+                  </div>
+
+                  <div className={styles.field}>
+                    <Typography size={16} weight="medium">
+                      Brand Owner Wallet Address *
+                    </Typography>
+                    <input
+                      type="text"
+                      name="walletAddress"
+                      value={formData.walletAddress || walletAddress || ""}
+                      onChange={handleInputChange}
+                      placeholder={walletAddress || "0x..."}
+                      className={`${styles.input} ${
+                        errors.walletAddress ? styles.inputError : ""
+                      }`}
+                      disabled={!!walletAddress}
+                    />
+                    <Typography size={12} className={styles.helpText}>
+                      Wallet address of the brand owner (defaults to connected
+                      wallet)
+                    </Typography>
+                    {errors.walletAddress && (
+                      <Typography size={12} className={styles.errorText}>
+                        Wallet address is required
+                      </Typography>
+                    )}
+                    {!isConnected && (
+                      <Typography size={12} className={styles.errorText}>
+                        Please connect your wallet
+                      </Typography>
+                    )}
+                  </div>
+                </>
+              )}
+              <div className={styles.formActions}>
+                <Button
+                  caption="Continue →"
+                  variant="primary"
+                  onClick={proceedToConfirm}
+                  disabled={!isConnected && !isEditing}
+                />
+                {!isConnected && !isEditing && (
+                  <Typography size={12} className={styles.errorText}>
+                    Please connect your wallet to create a brand on-chain
+                  </Typography>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -633,11 +913,31 @@ function AdminPage(): React.ReactNode {
                 onClick={() => setCurrentStep("form")}
               />
               <Button
-                caption={isEditing ? "✓ Save Changes" : "✓ Create Brand"}
+                caption={
+                  isPreparingMetadata
+                    ? "⏳ Preparing Metadata..."
+                    : isCreatingBrand || isPending || isConfirming
+                    ? "⏳ Creating on-chain..."
+                    : isEditing
+                    ? "✓ Save Changes"
+                    : "✓ Create Brand"
+                }
                 variant="primary"
                 onClick={handleFinalSubmit}
                 className={styles.confirmButton}
+                disabled={
+                  isPreparingMetadata ||
+                  isCreatingBrand ||
+                  isPending ||
+                  isConfirming ||
+                  (!isConnected && !isEditing)
+                }
               />
+              {contractError && (
+                <Typography size={12} className={styles.errorText}>
+                  {contractError}
+                </Typography>
+              )}
             </div>
           </div>
         </div>

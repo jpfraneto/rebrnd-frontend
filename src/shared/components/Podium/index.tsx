@@ -15,7 +15,6 @@ import useBottomSheet from "@/hooks/ui/useBottomSheet";
 import { Brand } from "@/hooks/brands";
 
 // Assets
-import SquareArrowRightIcon from "@/assets/icons/square-arrow-right.svg?react";
 import sdk from "@farcaster/miniapp-sdk";
 
 interface PodiumProps {
@@ -23,6 +22,9 @@ interface PodiumProps {
   onVote?: (selected: Brand[]) => void;
   initial?: Brand[];
   isAnimated?: boolean;
+  buttonLabel?: string;
+  buttonDisabled?: boolean;
+  buttonVariant?: "primary" | "secondary" | "tertiary";
 }
 
 function Podium({
@@ -30,6 +32,9 @@ function Podium({
   initial = [],
   onVote,
   variant = "selection",
+  buttonLabel = "Let's go!",
+  buttonDisabled = false,
+  buttonVariant = "primary",
 }: PodiumProps) {
   const [selected, setSelected] = useState<Brand[]>(initial);
   const { open, close } = useBottomSheet();
@@ -124,11 +129,20 @@ function Podium({
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <Button
-                iconLeft={<SquareArrowRightIcon />}
-                caption={"Let’s go!"}
+                caption={buttonLabel}
+                variant={
+                  buttonVariant as
+                    | "primary"
+                    | "secondary"
+                    | "outline"
+                    | "underline"
+                }
+                disabled={buttonDisabled}
                 onClick={() => {
-                  sdk.haptics.selectionChanged();
-                  onVote?.(selected);
+                  if (!buttonDisabled) {
+                    sdk.haptics.selectionChanged();
+                    onVote?.(selected);
+                  }
                 }}
               />
             </motion.div>

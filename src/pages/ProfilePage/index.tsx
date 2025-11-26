@@ -10,31 +10,19 @@ import AppLayout from "@/shared/layouts/AppLayout";
 import MyPodium from "./partials/MyPodium";
 import UserProfile from "./partials/UserProfile";
 import Power from "./partials/Power";
-import Ranks from "./partials/Ranks";
 import ProfileTabNavigator from "@/shared/components/ProfileTabNavigator";
 import UserProfileHeader from "@/shared/components/UserProfileHeader";
 
 // Hocs
 import withProtectionRoute from "@/hocs/withProtectionRoute";
+import MyBrands from "./partials/MyBrands";
 
 function ProfilePage(): React.ReactNode {
-
   return (
     <AppLayout>
       <div className={styles.body}>
         {/* <PointsHeader /> */}
         <UserProfileHeader />
-
-        {/* Admin Button - Only show for admin users */}
-        {/* {isAdmin && (
-          <div className={styles.adminSection}>
-            <Button
-              caption="🛠️ Admin Panel"
-              variant="secondary"
-              onClick={() => navigate("/admin")}
-            />
-          </div>
-        )} */}
 
         <div className={styles.tabs}>
           <ProfileTabNavigator
@@ -48,7 +36,7 @@ function ProfilePage(): React.ReactNode {
                 path: "/profile/power",
               },
               {
-                label: "Ranks",
+                label: "Rank",
                 path: "/profile/ranks",
               },
               {
@@ -61,7 +49,7 @@ function ProfilePage(): React.ReactNode {
         <Routes>
           <Route path="/" element={<UserProfile />} />
           <Route path="/power" element={<Power />} />
-          <Route path="/ranks" element={<Ranks />} />
+          <Route path="/ranks" element={<MyBrands />} />
           <Route path="/podiums" element={<MyPodium />} />
         </Routes>
       </div>

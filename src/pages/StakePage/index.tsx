@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useConnect } from "wagmi";
 import { useContractWagmi } from "@/shared/hooks/contract/useContractWagmi";
 import styles from "./StakePage.module.scss";
+import Typography from "@/shared/components/Typography";
+import Button from "@/shared/components/Button";
+import sdk from "@farcaster/miniapp-sdk";
 
 export default function StakePage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"stake" | "unstake">("stake");
+  const [activeTab, setActiveTab] = useState<"stake" | "withdraw">("stake");
   const [stakeAmount, setStakeAmount] = useState("");
-  const [unstakeAmount, setUnstakeAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [txHash, setTxHash] = useState("");
 
@@ -20,13 +23,12 @@ export default function StakePage() {
     stakedBrndAmount,
     vaultShares,
     stakeBrnd,
-    unstakeBrnd,
+    withdrawBrnd,
     isPending,
     isConfirming,
     isConfirmed,
     error,
     isLoadingBrndBalances,
-    refreshBrndBalances,
   } = useContractWagmi(
     // onStakeSuccess
     (txData) => {
@@ -38,12 +40,12 @@ export default function StakePage() {
         setShowSuccess(false);
       }, 3000);
     },
-    // onUnstakeSuccess
+    // onWithdrawSuccess
     (txData) => {
-      console.log("Unstake successful!", txData);
+      console.log("Withdraw successful!", txData);
       setTxHash(txData.txHash);
       setShowSuccess(true);
-      setUnstakeAmount("");
+      setWithdrawAmount("");
       setTimeout(() => {
         setShowSuccess(false);
       }, 3000);
@@ -58,20 +60,22 @@ export default function StakePage() {
     stakeBrnd({ amount: stakeAmount });
   };
 
-  const handleUnstake = () => {
-    if (!unstakeAmount || parseFloat(unstakeAmount) <= 0) return;
-    if (parseFloat(unstakeAmount) > parseFloat(vaultShares)) {
+  const handleWithdraw = () => {
+    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
+    if (parseFloat(withdrawAmount) > parseFloat(vaultShares)) {
       return;
     }
-    unstakeBrnd({ shares: unstakeAmount });
+    withdrawBrnd({ shares: withdrawAmount });
   };
 
   const setMaxStake = () => {
-    setStakeAmount(brndBalance);
+    sdk.haptics.selectionChanged();
+    setStakeAmount(Math.floor(parseFloat(brndBalance)).toString());
   };
 
-  const setMaxUnstake = () => {
-    setUnstakeAmount(vaultShares);
+  const setMaxWithdraw = () => {
+    sdk.haptics.selectionChanged();
+    setWithdrawAmount(vaultShares);
   };
 
   const formatNumber = (num: string) => {
@@ -90,6 +94,7 @@ export default function StakePage() {
   };
 
   const handleBackClick = () => {
+    sdk.haptics.selectionChanged();
     navigate(-1);
   };
 
@@ -105,21 +110,17 @@ export default function StakePage() {
 
   return (
     <div className={styles.container}>
-      {/* Header with gradient accent */}
-      <div className={styles.gradientBorder}>
-        <div className={styles.header}>
-          <div className={styles.headerContent}>
-            <h2 className={styles.title}>BRND</h2>
-            <p className={styles.subtitle}>STAKING VAULT</p>
-          </div>
-          <button
-            onClick={handleBackClick}
-            className={styles.closeButton}
-            disabled={isPending || isConfirming}
-          >
-            ✕
-          </button>
-        </div>
+      {/* Header */}
+      <div className={styles.header}>
+        <Typography variant="druk" weight="wide" size={20} lineHeight={20}>
+          BRND Staking Vault
+        </Typography>
+        <button
+          onClick={handleBackClick}
+          className={styles.closeButton}
+          disabled={isPending || isConfirming}
+          aria-label="Close"
+        />
       </div>
 
       {isConnected ? (
@@ -127,15 +128,33 @@ export default function StakePage() {
           {/* Balance Cards */}
           <div className={styles.balanceSection}>
             <div className={styles.balanceGrid}>
-              <div className={styles.balanceCard}>
-                <p className={styles.balanceLabel}>Balance</p>
+              <div
+                className={`${styles.balanceCard} ${styles.balanceCardLeft}`}
+              >
+                <Typography
+                  variant="geist"
+                  weight="medium"
+                  size={14}
+                  lineHeight={14}
+                >
+                  Your Balance:
+                </Typography>
                 <p className={styles.balanceAmount}>
                   {formatNumber(brndBalance)}
                 </p>
                 <p className={styles.balanceToken}>$BRND</p>
               </div>
-              <div className={styles.balanceCard}>
-                <p className={styles.balanceLabel}>Staked</p>
+              <div
+                className={`${styles.balanceCard} ${styles.balanceCardRight}`}
+              >
+                <Typography
+                  variant="geist"
+                  weight="medium"
+                  size={14}
+                  lineHeight={14}
+                >
+                  Staked:
+                </Typography>
                 <p className={`${styles.balanceAmount} ${styles.staked}`}>
                   {formatNumber(stakedBrndAmount)}
                 </p>
@@ -147,14 +166,50 @@ export default function StakePage() {
           {/* Info Banner */}
           <div className={styles.infoContainer}>
             <div className={styles.infoBanner}>
-              <span className={styles.infoIcon}>ℹ️</span>
-              <div className={styles.infoContent}>
-                <p className={styles.infoTitle}>HOW IT WORKS</p>
-                <ul className={styles.infoList}>
-                  <li>• Stake BRND to earn rewards via Teller Finance</li>
-                  <li>• Get vault shares representing your stake</li>
-                  <li>• Unstake anytime to claim BRND + rewards</li>
-                  <li>• First-time stakers need token approval</li>
+              <div className={styles.infoBannerContent}>
+                <Typography
+                  variant="geist"
+                  weight="medium"
+                  size={14}
+                  lineHeight={14}
+                  className={styles.infoTitle}
+                >
+                  HOW IT WORKS
+                </Typography>
+                <ul
+                  className={styles.infoList}
+                  style={{ paddingLeft: 18, margin: 0 }}
+                >
+                  <li style={{ marginBottom: 4 }}>
+                    <Typography variant="geist" size={14}>
+                      Stake BRND to earn rewards via{" "}
+                      <span
+                        className={styles.tellerLink}
+                        onClick={() => {
+                          sdk.haptics.selectionChanged();
+                          sdk.actions.viewProfile({ fid: 303158 });
+                        }}
+                      >
+                        Teller Finance
+                      </span>
+                      .
+                    </Typography>
+                  </li>
+                  <li style={{ marginBottom: 4 }}>
+                    <Typography variant="geist" size={14}>
+                      Get vault shares representing your stake.
+                    </Typography>
+                  </li>
+                  <li style={{ marginBottom: 4 }}>
+                    <Typography variant="geist" size={14}>
+                      Unstake anytime to claim BRND + rewards.
+                    </Typography>
+                  </li>
+                  <li>
+                    <Typography variant="geist" size={14}>
+                      Staking requires token approval.
+                    </Typography>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -163,23 +218,27 @@ export default function StakePage() {
           {/* Tabs */}
           <div className={styles.tabsContainer}>
             <button
-              onClick={() => setActiveTab("stake")}
+              onClick={() => {
+                sdk.haptics.selectionChanged();
+                setActiveTab("stake");
+              }}
               className={`${styles.tab} ${
                 activeTab === "stake" ? styles.tabActive : ""
               }`}
               disabled={isPending || isConfirming}
             >
-              <span className={styles.tabIcon}>↗</span>
               STAKE
             </button>
             <button
-              onClick={() => setActiveTab("unstake")}
-              className={`${styles.tab} ${styles.tabUnstake} ${
-                activeTab === "unstake" ? styles.tabUnstakeActive : ""
+              onClick={() => {
+                sdk.haptics.selectionChanged();
+                setActiveTab("withdraw");
+              }}
+              className={`${styles.tab} ${
+                activeTab === "withdraw" ? styles.tabWithdrawActive : ""
               }`}
               disabled={isPending || isConfirming}
             >
-              <span className={styles.tabIcon}>↙</span>
               UNSTAKE
             </button>
           </div>
@@ -190,13 +249,13 @@ export default function StakePage() {
               // Stake Tab
               <div className={styles.formContainer}>
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Amount to Stake</label>
+                  <label className={styles.inputLabel}>Amount to stake</label>
                   <div className={styles.inputWrapper}>
                     <input
                       type="number"
                       value={stakeAmount}
                       onChange={(e) => setStakeAmount(e.target.value)}
-                      placeholder="0.0"
+                      placeholder="0.00"
                       className={styles.input}
                       disabled={
                         isPending || isConfirming || isLoadingBrndBalances
@@ -220,7 +279,15 @@ export default function StakePage() {
                     )}
                 </div>
 
-                <button
+                <Button
+                  variant="primary"
+                  caption={
+                    isPending
+                      ? "CONFIRM IN WALLET..."
+                      : isConfirming
+                      ? "PROCESSING..."
+                      : "Stake $BRND"
+                  }
                   onClick={handleStake}
                   disabled={
                     isPending ||
@@ -230,55 +297,36 @@ export default function StakePage() {
                     parseFloat(stakeAmount) > parseFloat(brndBalance) ||
                     isLoadingBrndBalances
                   }
-                  className={styles.submitButton}
-                >
-                  {isPending || isConfirming ? (
-                    <>
-                      <span className={styles.spinner}>⌛</span>
-                      {isPending ? "CONFIRM IN WALLET..." : "PROCESSING..."}
-                    </>
-                  ) : (
-                    "STAKE BRND"
-                  )}
-                </button>
-
-                {isPending && (
-                  <p className={styles.pendingText}>
-                    ⏳ CONFIRM TRANSACTION IN YOUR WALLET
-                  </p>
-                )}
+                  loading={isConfirming}
+                />
               </div>
             ) : (
-              // Unstake Tab
+              // Withdraw Tab
               <div className={styles.formContainer}>
-                <div className={styles.sharesCard}>
-                  <p className={styles.balanceLabel}>Vault Shares</p>
-                  <p className={styles.balanceAmount}>
-                    {formatNumber(vaultShares)}
-                  </p>
-                  <p className={styles.balanceToken}>
-                    ≈ {formatNumber(stakedBrndAmount)} BRND
-                  </p>
-                </div>
-
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>
-                    Shares to Unstake
+                    Amount to Withdraw:
                   </label>
                   <div className={styles.inputWrapper}>
                     <input
                       type="number"
-                      value={unstakeAmount}
-                      onChange={(e) => setUnstakeAmount(e.target.value)}
-                      placeholder="0.0"
-                      className={`${styles.input} ${styles.inputUnstake}`}
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      placeholder="0.00"
+                      className={`${styles.input} ${styles.inputWithdraw}`}
                       disabled={
                         isPending || isConfirming || isLoadingBrndBalances
                       }
+                      max={
+                        activeTab === "withdraw"
+                          ? parseFloat(vaultShares)
+                          : parseFloat(brndBalance)
+                      }
+                      min={0}
                     />
                     <button
-                      onClick={setMaxUnstake}
-                      className={`${styles.maxButton} ${styles.maxButtonUnstake}`}
+                      onClick={setMaxWithdraw}
+                      className={`${styles.maxButton} ${styles.maxButtonWithdraw}`}
                       disabled={
                         isPending || isConfirming || isLoadingBrndBalances
                       }
@@ -286,35 +334,34 @@ export default function StakePage() {
                       MAX
                     </button>
                   </div>
-                  {unstakeAmount &&
-                    parseFloat(unstakeAmount) > parseFloat(vaultShares) && (
+                  {withdrawAmount &&
+                    parseFloat(withdrawAmount) > parseFloat(vaultShares) && (
                       <p className={styles.errorText}>
                         ⚠️ INSUFFICIENT VAULT SHARES
                       </p>
                     )}
                 </div>
 
-                <button
-                  onClick={handleUnstake}
+                <Button
+                  variant="primary"
+                  caption={
+                    isPending
+                      ? "CONFIRM IN WALLET..."
+                      : isConfirming
+                      ? "PROCESSING..."
+                      : "Withdraw $BRND"
+                  }
+                  onClick={handleWithdraw}
                   disabled={
                     isPending ||
                     isConfirming ||
-                    !unstakeAmount ||
-                    parseFloat(unstakeAmount) <= 0 ||
-                    parseFloat(unstakeAmount) > parseFloat(vaultShares) ||
+                    !withdrawAmount ||
+                    parseFloat(withdrawAmount) <= 0 ||
+                    parseFloat(withdrawAmount) > parseFloat(vaultShares) ||
                     isLoadingBrndBalances
                   }
-                  className={`${styles.submitButton} ${styles.submitButtonUnstake}`}
-                >
-                  {isPending || isConfirming ? (
-                    <>
-                      <span className={styles.spinner}>⌛</span>
-                      {isPending ? "CONFIRM IN WALLET..." : "PROCESSING..."}
-                    </>
-                  ) : (
-                    "UNSTAKE BRND"
-                  )}
-                </button>
+                  loading={isConfirming}
+                />
 
                 {isPending && (
                   <p className={styles.pendingText}>
@@ -327,10 +374,10 @@ export default function StakePage() {
             {/* Error Message */}
             {error && (
               <div className={styles.errorBanner}>
-                <span className={styles.errorIcon}>⚠️</span>
                 <div>
-                  <p className={styles.errorTitle}>TRANSACTION FAILED</p>
-                  <p className={styles.errorMessage}>{error}</p>
+                  <Typography variant="geist" weight="medium" size={14}>
+                    {error}
+                  </Typography>
                 </div>
               </div>
             )}
@@ -354,25 +401,6 @@ export default function StakePage() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Footer */}
-          <div className={styles.footer}>
-            <a
-              href="https://defi.teller.org/pool/0x19d1872d8328b23a219e11d3d6eeee1954a88f88"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.footerLink}
-            >
-              VIEW POOL →
-            </a>
-            <button
-              onClick={refreshBrndBalances}
-              className={styles.footerButton}
-              disabled={isLoadingBrndBalances}
-            >
-              {isLoadingBrndBalances ? "REFRESHING..." : "REFRESH"}
-            </button>
           </div>
         </>
       ) : (

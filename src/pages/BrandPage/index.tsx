@@ -40,7 +40,8 @@ function BrandPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const { data: user } = useAuth();
-  const { data, isLoading, isFetching } = useBrand(Number(id));
+  const { data, isLoading } = useBrand(Number(id));
+  console.log("THE DATA ON THE BRAND PAGE", data);
   useDisableScrollBody();
 
   /**
@@ -138,7 +139,7 @@ function BrandPage() {
   return (
     <AppLayout>
       <div className={styles.body}>
-        {isFetching || isLoading || !data || !data.brand ? (
+        {isLoading || !data || !data.brand?.name ? (
           <LoaderIndicator variant={"fullscreen"} />
         ) : (
           <>

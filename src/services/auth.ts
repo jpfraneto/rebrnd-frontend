@@ -26,13 +26,17 @@ export const getMe = async (): Promise<
     hasVotedToday: boolean;
     isNewUser: boolean;
   }
-> =>
-  await request<User & { hasVotedToday: boolean; isNewUser: boolean }>(
-    `${AUTH_SERVICE}/me`,
-    {
-      method: "GET",
-    }
-  );
+> => {
+  const response = await request<
+    User & { hasVotedToday: boolean; isNewUser: boolean }
+  >(`${AUTH_SERVICE}/me`, {
+    method: "GET",
+  });
+
+  console.log("📥 [getMe] /me endpoint response:", response);
+
+  return response;
+};
 
 /**
  * Updates user profile information.

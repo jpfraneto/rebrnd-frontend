@@ -1,0 +1,133 @@
+.container {
+  margin-top: 16px;
+}
+
+.transactionInfo {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 14px;
+}
+
+.transactionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transactionItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.transactionLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.transactionValue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.transactionHash {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.02);
+  }
+}
+
+.copied {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #10b981;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(5px); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+}
+
+.rewardAmount {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.explorerLink {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.1);
+    transform: scale(1.1);
+  }
+}
+
+.warpcastLink {
+  color: #8b5cf6;
+  text-decoration: none;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.1);
+    transform: scale(1.1);
+  }
+}
+
+// Responsive design
+@media (max-width: 640px) {
+  .transactionItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .transactionValue {
+    align-self: stretch;
+    justify-content: flex-start;
+  }
+  
+  .transactionHash {
+    font-size: 12px;
+  }
+}

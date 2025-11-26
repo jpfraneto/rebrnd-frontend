@@ -67,12 +67,28 @@ export const getCurrentMonthStart = (): Date => {
 };
 
 /**
+ * Get the start of current day (midnight UTC)
+ */
+export const getCurrentDayStart = (): Date => {
+  const now = new Date();
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+  const deploymentDate = getDeploymentDate();
+
+  // Don't go before deployment
+  if (dayStart.getTime() < deploymentDate.getTime()) {
+    return deploymentDate;
+  }
+
+  return dayStart;
+};
+
+/**
  * Calculate smart scores based on actual time periods
  * This estimates what the scores should be if resets were working properly
  */
 export const calculateSmartPeriodScores = (
   brand: Brand,
-  period: "week" | "month" | "all"
+  period: "week" | "month" | "all" | "daily"
 ): SmartScores => {
   const now = new Date();
   const deploymentDate = getDeploymentDate();
@@ -144,6 +160,29 @@ export const calculateSmartPeriodScores = (
       };
     }
 
+    case "daily": {
+      const dayStart = getCurrentDayStart();
+      const hoursSinceDayStart = Math.max(
+        1,
+        (now.getTime() - dayStart.getTime()) / (1000 * 60 * 60)
+      );
+
+      // Estimate daily score as a fraction based on hours since midnight
+      // Daily scores should be much smaller than weekly/monthly
+      const dailyFraction = Math.min(1, hoursSinceDayStart / (24 * totalDaysSinceDeployment));
+      const estimatedDailyScore = Math.round(brand.score * dailyFraction);
+
+      // For daily, we don't have backend daily scores, so we use our estimation
+      // Daily score should be proportional to recent activity
+      const recentActivityMultiplier = Math.min(1, hoursSinceDayStart / 24); // Scale by how much of the day has passed
+
+      return {
+        score: Math.max(1, estimatedDailyScore * recentActivityMultiplier),
+        stateScore: Math.round(brand.stateScore * dailyFraction * recentActivityMultiplier),
+        ranking: parseInt(brand.ranking || "0"),
+      };
+    }
+
     default:
       return {
         score: brand.score,
@@ -159,7 +198,7 @@ export const calculateSmartPeriodScores = (
  */
 export const processBrandsWithSmartScoring = (
   brands: Brand[],
-  period: "week" | "month" | "all"
+  period: "week" | "month" | "all" | "daily"
 ): Brand[] => {
   // Calculate smart scores for each brand
   const brandsWithSmartScores = brands.map((brand) => {

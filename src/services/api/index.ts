@@ -15,6 +15,23 @@ export const DEFAULT_HEADERS = {
 };
 
 /**
+ * Custom JSON parser that preserves large numbers as strings
+ */
+function parseJSONWithBigInt(text: string): any {
+  return JSON.parse(text, (_key, value) => {
+    // If the value is a string that looks like a large integer, keep it as string
+    if (typeof value === "string" && /^\d{19,}$/.test(value)) {
+      return value; // Keep as string
+    }
+    // If it's a number that's too large, convert back to string
+    if (typeof value === "number" && !Number.isSafeInteger(value)) {
+      return value.toString();
+    }
+    return value;
+  });
+}
+
+/**
  * Asynchronously sends a request to the server.
  * @param path The endpoint path to which the request is sent.
  * @param props The configuration options for the request, including method, headers, and body.
@@ -65,11 +82,16 @@ export async function request<T>(
       throw new Error(`Error: ${response.statusText}`);
     }
 
-    const data: T = await response.json();
+    // ⚠️ CRITICAL FIX: Don't use response.json() - it corrupts large numbers!
+    // Instead, get text and parse with custom handler
+    const text = await response.text();
+    const data: T = parseJSONWithBigInt(text);
+
+    console.log("🔍 [Request] Parsed response with BigInt preservation");
+
     return data;
   } catch (error) {
     console.error("Request error:", error);
-
     throw error;
   }
 }

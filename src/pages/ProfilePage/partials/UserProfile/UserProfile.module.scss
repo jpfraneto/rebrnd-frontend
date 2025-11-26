@@ -52,6 +52,7 @@
 .brandIcon {
   width: 40px;
   height: 40px;
+  border-radius: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -66,6 +67,10 @@
 
 .brandName {
   color: #fff;
+}
+
+.transactionInfo {
+  margin-top: 16px;
 }
 
 @include isMobile() {

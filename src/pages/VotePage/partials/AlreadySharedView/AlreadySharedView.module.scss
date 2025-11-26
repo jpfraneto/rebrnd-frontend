@@ -59,6 +59,39 @@
   color: #4caf50;
 }
 
+.errorMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 12px;
+  margin: 0 8px;
+
+  .Typography {
+    color: #f44336;
+  }
+}
+
+.loadingMessage,
+.claimMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-radius: 12px;
+  margin: 0 8px;
+
+  .Typography {
+    color: #2196f3;
+  }
+}
+
 .box {
   display: flex;
   flex: 0;
@@ -92,6 +125,29 @@
 
 .actionGroup .Button {
   width: 100%;
+}
+
+.transactionInfo {
+  margin: 0 8px;
+}
+
+.voteTransactionInfo {
+  padding: 8px 12px;
+  margin: 0 8px 12px 8px;
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  
+  .txLink {
+    color: #3b82f6;
+    text-decoration: none;
+    margin-left: 4px;
+    transition: opacity 0.2s ease;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
 }
 
 @include isMobile() {

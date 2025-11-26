@@ -1,5 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatUnits } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 import sdk from "@farcaster/miniapp-sdk";
 
 // Components
@@ -9,7 +11,8 @@ import Button from "@/components/Button";
 import LoaderIndicator from "@/shared/components/LoaderIndicator";
 
 // Hooks
-import { useShareVerification } from "@/hooks/user/useShareVerification";
+import { useStoriesInMotion } from "@/shared/hooks/contract/useStoriesInMotion";
+import { useContextualTransaction } from "@/shared/hooks/user/useContextualTransaction";
 
 // Types
 import { VotingViewProps, VotingViewEnum } from "../../types";
@@ -20,24 +23,60 @@ import ShareIcon from "@/assets/icons/share-icon.svg?react";
 // StyleSheet
 import styles from "./ShareView.module.scss";
 
-interface Place {
-  icon: string;
-  name: string;
-}
-
 interface ShareViewProps extends VotingViewProps {}
 
 export default function ShareView({
   currentBrands,
   currentVoteId,
   navigateToView,
+  transactionHash,
 }: ShareViewProps) {
   const navigate = useNavigate();
-  const shareVerification = useShareVerification();
+  const queryClient = useQueryClient();
+  const { transaction, isVoteTransaction } = useContextualTransaction();
+
+  const {
+    verifyShareAndGetClaimSignature,
+    executeClaimReward,
+    isPending: isClaimPending,
+    isConfirming: isClaimConfirming,
+    error: claimError,
+  } = useStoriesInMotion(
+    undefined, // onAuthorizeSuccess
+    undefined, // onLevelUpSuccess
+    undefined, // onVoteSuccess
+    // onClaimSuccess
+    (txData) => {
+      console.log("✅ [ShareView] Reward claim successful!", txData);
+      // Invalidate auth query to refresh user data with updated todaysVoteStatus
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      // Navigate to congrats view after successful claim
+      // castHash is available from currentBrands context or will be in todaysVoteStatus
+      navigateToView?.(
+        VotingViewEnum.CONGRATS,
+        currentBrands,
+        currentVoteId,
+        transactionHash,
+        undefined // castHash will be available from todaysVoteStatus after refresh
+      );
+    }
+  );
 
   const [isSharing, setIsSharing] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [claimData, setClaimData] = useState<{
+    castHash: string;
+    claimSignature: {
+      signature: string;
+      amount: string;
+      deadline: number;
+      nonce: number;
+      canClaim: boolean;
+    };
+    day: number;
+  } | null>(null);
 
   /**
    * Handles the click event for the "Skip" button.
@@ -72,7 +111,7 @@ export default function ShareView({
       const castText = `I just created my @brnd podium of today:\n\n🥇${currentBrands[1]?.name} - ${profile1}\n🥈${currentBrands[0]?.name} - ${profile2}\n🥉${currentBrands[2]?.name} - ${profile3}`;
 
       // Use the correct embed URL that matches backend expectation
-      const embedUrl = `https://brnd.land?voteId=${currentVoteId}`;
+      const embedUrl = `https://brnd.land?txHash=${transactionHash}`;
 
       // Compose cast with standardized text and embed
       const castResponse = await sdk.actions.composeCast({
@@ -80,39 +119,58 @@ export default function ShareView({
         embeds: [embedUrl],
       });
 
-      // If cast was successful and we have a hash, verify it
+      // If cast was successful and we have a hash, verify share
       if (castResponse && castResponse.cast?.hash) {
         // Update state to show verification is happening
         setIsSharing(false);
         setIsVerifying(true);
 
-        // Verify the share and wait for result
-        shareVerification.mutate(
-          {
-            castHash: castResponse.cast?.hash,
-            voteId: currentVoteId,
-          },
-          {
-            onSuccess: () => {
-              setIsVerifying(false);
+        const castHash = castResponse.cast?.hash;
+        console.log("✅ [ShareView] Cast shared successfully", {
+          castHash,
+          voteId: currentVoteId,
+        });
 
-              // Navigate to congrats view only after successful verification
-              navigateToView?.(
-                VotingViewEnum.CONGRATS,
-                currentBrands,
-                currentVoteId
-              );
-            },
-            onError: (error) => {
-              console.error("❌ [ShareView] Verification failed:", error);
-              setIsVerifying(false);
-              setShareError(
-                error.message || "Failed to verify share. Please try again."
-              );
-              // Stay on share view to show error and allow retry
-            },
-          }
-        );
+        // Verify share and get claim signature (does not execute transaction)
+        try {
+          console.log("🔐 [ShareView] Verifying share...", {
+            castHash,
+            voteId: currentVoteId,
+          });
+
+          const verificationResult = await verifyShareAndGetClaimSignature(
+            castHash,
+            currentVoteId,
+            transactionHash
+          );
+
+          console.log("✅ [ShareView] Share verified successfully", {
+            amount: verificationResult.amount,
+            day: verificationResult.day,
+          });
+
+          // Store claim data for the claim button
+          setClaimData({
+            castHash,
+            claimSignature: verificationResult.claimSignature,
+            day: verificationResult.day,
+          });
+
+          // Invalidate auth query to refresh todaysVoteStatus (hasShared should now be true)
+          // The castHash will be available in todaysVoteStatus.castHash after backend processes it
+          queryClient.invalidateQueries({ queryKey: ["auth"] });
+
+          setIsVerifying(false);
+
+          // Note: castHash is now available and will be passed through viewProps
+          // via todaysVoteStatus.castHash after the auth query refreshes
+        } catch (error: any) {
+          console.error("❌ [ShareView] Share verification failed:", error);
+          setIsVerifying(false);
+          setShareError(
+            error.message || "Failed to verify share. Please try again."
+          );
+        }
       } else {
         console.warn(
           "📤 [ShareView] Cast response missing hash:",
@@ -129,42 +187,52 @@ export default function ShareView({
   }, [
     currentBrands,
     currentVoteId,
-    navigateToView,
-    shareVerification,
+    transactionHash,
+    verifyShareAndGetClaimSignature,
     isSharing,
     isVerifying,
   ]);
 
-  // Safely create places array
-  const places = useMemo<Place[]>(() => {
-    if (!currentBrands || currentBrands.length < 3) {
-      return [];
+  /**
+   * Handles the claim reward button click - executes the transaction
+   */
+  const handleClickClaim = useCallback(async () => {
+    if (!claimData || isClaiming || isClaimPending || isClaimConfirming) {
+      return;
     }
 
-    return [
-      {
-        icon: "🥇",
-        name:
-          currentBrands[1]?.profile ||
-          currentBrands[1]?.channel ||
-          currentBrands[1]?.name,
-      },
-      {
-        icon: "🥈",
-        name:
-          currentBrands[0]?.profile ||
-          currentBrands[0]?.channel ||
-          currentBrands[0]?.name,
-      },
-      {
-        icon: "🥉",
-        name:
-          currentBrands[2]?.profile ||
-          currentBrands[2]?.channel ||
-          currentBrands[2]?.name,
-      },
-    ];
-  }, [currentBrands]);
+    setIsClaiming(true);
+    setShareError(null);
+
+    try {
+      console.log("💰 [ShareView] Executing claim reward transaction...", {
+        castHash: claimData.castHash,
+        amount: claimData.claimSignature.amount,
+        day: claimData.day,
+      });
+
+      await executeClaimReward(
+        claimData.castHash,
+        claimData.claimSignature,
+        claimData.day
+      );
+
+      console.log("✅ [ShareView] Claim reward transaction submitted");
+      // Note: Navigation to CongratsView happens in onClaimSuccess callback
+    } catch (error: any) {
+      console.error("❌ [ShareView] Claim reward failed:", error);
+      setIsClaiming(false);
+      setShareError(
+        error.message || "Failed to claim reward. Please try again."
+      );
+    }
+  }, [
+    claimData,
+    executeClaimReward,
+    isClaiming,
+    isClaimPending,
+    isClaimConfirming,
+  ]);
 
   // Show loading or error state if data is missing
   if (!currentBrands || currentBrands.length < 3 || !currentVoteId) {
@@ -180,11 +248,31 @@ export default function ShareView({
   // Determine the current state for UI feedback
   const getButtonState = () => {
     if (isSharing) return "Sharing...";
-    if (isVerifying) return "Verifying...";
+    if (isVerifying) return "Verifying Share";
+    if (claimData) {
+      // Show claim amount after verification
+      const claimAmount = parseFloat(
+        formatUnits(BigInt(claimData.claimSignature.amount), 18)
+      );
+      return `Claim ${claimAmount.toFixed(0)} $BRND`;
+    }
+    if (isClaiming || isClaimPending || isClaimConfirming) {
+      if (isClaimPending) return "⏳ Confirm in wallet...";
+      if (isClaimConfirming) return "🔄 Processing...";
+      return "Claiming...";
+    }
     return "Share now";
   };
 
-  const isLoading = isSharing || isVerifying;
+  const isLoading =
+    isSharing ||
+    isVerifying ||
+    isClaiming ||
+    isClaimPending ||
+    isClaimConfirming;
+
+  // Determine which button to show and what action it should perform
+  const showClaimButton = claimData !== null && !isVerifying;
 
   return (
     <div className={styles.body}>
@@ -225,7 +313,93 @@ export default function ShareView({
             lineHeight={18}
             textAlign={"center"}
           >
-            🔍 Verifying your share to award 3 more points...
+            🔍 Verifying Share...
+          </Typography>
+        </div>
+      )}
+
+      {/* Show vote transaction hash - State 2: User has voted, display the transaction */}
+      {(transactionHash ||
+        (isVoteTransaction && transaction?.transactionHash)) && (
+        <div className={styles.transactionStatus}>
+          <Typography
+            variant={"geist"}
+            weight={"medium"}
+            size={12}
+            lineHeight={16}
+            textAlign={"center"}
+          >
+            ✅ Vote Transaction:{" "}
+            {(transactionHash || transaction?.transactionHash)!.slice(0, 6)}...
+            {(transactionHash || transaction?.transactionHash)!.slice(-4)}
+            <a
+              href={`https://basescan.org/tx/${
+                transactionHash || transaction?.transactionHash
+              }`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.txLink}
+              title="View on Base Explorer"
+            >
+              ↗
+            </a>
+          </Typography>
+        </div>
+      )}
+
+      {/* Show claim ready status */}
+      {claimData &&
+        !isVerifying &&
+        !isClaiming &&
+        !isClaimPending &&
+        !isClaimConfirming && (
+          <div className={styles.verificationMessage}>
+            <Typography
+              variant={"geist"}
+              weight={"medium"}
+              size={14}
+              lineHeight={18}
+              textAlign={"center"}
+            >
+              ✅ Share verified! Ready to claim{" "}
+              {parseFloat(
+                formatUnits(BigInt(claimData.claimSignature.amount), 18)
+              ).toFixed(0)}{" "}
+              $BRND
+            </Typography>
+          </div>
+        )}
+
+      {/* Show claiming status */}
+      {(isClaiming || isClaimPending || isClaimConfirming) && (
+        <div className={styles.verificationMessage}>
+          <Typography
+            variant={"geist"}
+            weight={"medium"}
+            size={14}
+            lineHeight={18}
+            textAlign={"center"}
+          >
+            {isClaimPending
+              ? "⏳ Confirm reward claim in wallet..."
+              : isClaimConfirming
+              ? "🔄 Processing reward claim..."
+              : "💰 Claiming your reward..."}
+          </Typography>
+        </div>
+      )}
+
+      {/* Show claim error */}
+      {claimError && (
+        <div className={styles.errorMessage}>
+          <Typography
+            variant={"geist"}
+            weight={"medium"}
+            size={14}
+            lineHeight={18}
+            textAlign={"center"}
+          >
+            {claimError}
           </Typography>
         </div>
       )}
@@ -239,19 +413,6 @@ export default function ShareView({
         >
           I've just created my BRND podium of today:
         </Typography>
-        <div className={styles.places}>
-          {places.map((place, index) => (
-            <Typography
-              key={`--place-${index.toString()}`}
-              variant={"geist"}
-              weight={"regular"}
-              size={16}
-              lineHeight={20}
-            >
-              {place.icon} {place.name}
-            </Typography>
-          ))}
-        </div>
 
         <div className={styles.podium}>
           <Podium
@@ -269,17 +430,25 @@ export default function ShareView({
               lineHeight={10}
             >
               {isVerifying
-                ? "Verifying share to award 3 points..."
-                : "You will earn 3 BRND points for sharing"}
+                ? "Verifying your share..."
+                : showClaimButton
+                ? "Claim your 10x BRND reward"
+                : isClaiming || isClaimPending || isClaimConfirming
+                ? "Claiming your reward..."
+                : "Share to claim your 10x BRND reward"}
             </Typography>
             <Button
               caption={getButtonState()}
               className={styles.button}
               iconLeft={
-                isLoading ? <LoaderIndicator size={16} /> : <ShareIcon />
+                isLoading ? (
+                  <LoaderIndicator size={16} />
+                ) : showClaimButton ? undefined : (
+                  <ShareIcon />
+                )
               }
-              onClick={handleClickShare}
-              disabled={isLoading}
+              onClick={showClaimButton ? handleClickClaim : handleClickShare}
+              disabled={isLoading && !showClaimButton}
             />
           </div>
         </div>

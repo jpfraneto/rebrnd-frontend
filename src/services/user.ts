@@ -183,10 +183,22 @@ export interface AirdropCheckResponse {
  *
  * @returns A promise that resolves with airdrop check data including eligibility, points, and completed tasks.
  */
-export const checkUserAirdrop = async (): Promise<AirdropCheckResponse> =>
-  await request<AirdropCheckResponse>(`${AIRDROP_SERVICE}/check-user`, {
-    method: "GET",
-  });
+export const checkUserAirdrop = async (): Promise<AirdropCheckResponse> => {
+  console.log("[checkUserAirdrop] Requesting airdrop check...");
+  try {
+    const response = await request<AirdropCheckResponse>(
+      `${AIRDROP_SERVICE}/check-user`,
+      {
+        method: "GET",
+      }
+    );
+    console.log("[checkUserAirdrop] Response received:", response);
+    return response;
+  } catch (error) {
+    console.error("[checkUserAirdrop] Error during airdrop check:", error);
+    throw error;
+  }
+};
 
 /**
  * Interface for airdrop leaderboard entry
@@ -224,6 +236,22 @@ export interface AirdropLeaderboardResponse {
 }
 
 /**
+ * Interface for user profile data
+ */
+export interface UserProfileData {
+  leaderboardPosition: number;
+  currentPoints: number;
+  dailyStreak: number;
+  totalPodiums: number;
+  favoriteBrand: {
+    name: string;
+    iconUrl: string;
+  } | null;
+  votedBrands: number;
+  neynarScore: number;
+}
+
+/**
  * Retrieves the airdrop leaderboard data.
  * No authentication required for leaderboard viewing.
  *
@@ -238,4 +266,15 @@ export const getAirdropLeaderboard = async (
     params: {
       limit: String(limit),
     },
+  });
+
+/**
+ * Retrieves the current user's profile data including stats and metrics.
+ * Uses authentication to identify the user via the backend's quickAuth mechanism.
+ *
+ * @returns A promise that resolves with user profile data including leaderboard position, points, streak, etc.
+ */
+export const getUserProfile = async (): Promise<UserProfileData> =>
+  await request<UserProfileData>(`${USER_SERVICE}/profile`, {
+    method: "GET",
   });

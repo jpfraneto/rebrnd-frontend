@@ -6,7 +6,8 @@ import { Brand } from '../../hooks/brands';
 export enum ModalsIds {
   ERROR = 'ERROR',
   BOTTOM_ALERT = 'BOTTOM_ALERT',
-  SHARE_BRAND = 'SHARE_BRAND'
+  SHARE_BRAND = 'SHARE_BRAND',
+  PERKS = 'PERKS'
 }
 
 /**
@@ -16,6 +17,7 @@ export type ModalData = {
   [ModalsIds.ERROR]: ErrorModalData;
   [ModalsIds.BOTTOM_ALERT]: BottomAlertData;
   [ModalsIds.SHARE_BRAND]: ShareBrandModalData;
+  [ModalsIds.PERKS]: PerksModalData;
 };
 
 /**
@@ -69,3 +71,8 @@ export type BottomAlertData = {
   title: string;
   content: React.ReactNode[] | React.ReactNode;
 };
+
+/**
+ * Type representing the data structure for the perks modal.
+ */
+export type PerksModalData = {};

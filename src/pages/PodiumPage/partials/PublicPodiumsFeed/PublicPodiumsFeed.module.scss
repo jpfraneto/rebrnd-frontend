@@ -26,7 +26,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 16px;
+  padding: 16px 0;
   padding-bottom: 32px; // Extra padding for scroll loading
 }
 
@@ -172,7 +172,7 @@
   }
 
   .podiumsList {
-    padding: 12px;
+    padding: 12px 0;
     gap: 16px;
     padding-bottom: 24px;
   }

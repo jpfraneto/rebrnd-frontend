@@ -63,6 +63,7 @@ export const router = createBrowserRouter([
       { path: "/ranking", element: <RankingPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/airdrop", element: <AirdropPage /> },
+      { path: "/claim-airdrop", element: <AirdropPage /> },
       { path: "/stake", element: <StakePage /> },
       { path: "*", element: <NotFoundPage /> },
       { path: "/admin", element: <AdminPage /> },

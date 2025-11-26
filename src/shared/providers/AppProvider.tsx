@@ -1,6 +1,12 @@
 // Dependencies
 import { Outlet } from "react-router-dom";
-import { useState, useEffect, createContext, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  createContext,
+  useCallback,
+  useMemo,
+} from "react";
 
 // Providers
 import { BottomSheetProvider } from "./BottomSheetProvider";
@@ -82,8 +88,9 @@ export function AppProvider(): JSX.Element {
           setUserFid(context.user.fid);
         }
 
-        // Backend authentication happens automatically when useAuth calls /me
+        // Backend authentication happens automatically when useAuth hook calls /me
         // The /me endpoint will create/update user and return profile data
+        // We don't prefetch here to avoid redundant calls - useAuth handles it
         setIsInitialized(true);
 
         // Short delay to let the app settle before showing prompt
@@ -141,7 +148,7 @@ export function AppProvider(): JSX.Element {
     [userFid]
   );
 
-  const signIn = async () => {
+  const signIn = useCallback(async () => {
     try {
       // Get new QuickAuth token
       const { token: newToken } = await sdk.quickAuth.getToken();
@@ -157,9 +164,9 @@ export function AppProvider(): JSX.Element {
     } catch (error) {
       console.error("Failed to sign in:", error);
     }
-  };
+  }, []);
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     setToken(undefined);
     setMiniappContext(null);
     setIsInitialized(false);
@@ -167,19 +174,23 @@ export function AppProvider(): JSX.Element {
     setUserFid(null);
     // Clear all cached data
     queryClient.clear();
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      token,
+      signIn,
+      signOut,
+      miniappContext,
+      isInitialized,
+    }),
+    [token, signIn, signOut, miniappContext, isInitialized]
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider
-        value={{
-          token,
-          signIn,
-          signOut,
-          miniappContext,
-          isInitialized,
-        }}
-      >
+      <AuthContext.Provider value={contextValue}>
         <BottomSheetProvider>
           <ModalProvider>
             {/* Add miniapp prompt overlay - shown on app load if needed */}

@@ -46,3 +46,14 @@ export type BrandCast = {
   warpcastUrl: string;
   hash: string;
 };
+
+// On-chain brand data from StoriesInMotion contract
+export type OnChainBrand = {
+  fid: number;
+  walletAddress: string;
+  totalBrndAwarded: string;
+  availableBrnd: string;
+  handle: string;
+  metadataHash: string;
+  createdAt: number;
+};

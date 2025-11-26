@@ -5,3 +5,4 @@ export * from "./useUserBrands";
 export * from "./useShareFrame";
 export * from "./useMyVoteHistory";
 export * from "./useAirdropCheck";
+export * from "./useUserProfile";

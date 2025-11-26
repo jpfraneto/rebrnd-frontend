@@ -25,6 +25,7 @@ interface BrandHeaderProps {
   showBackButton?: boolean;
   backButtonPath?: string;
   showUserProfile?: boolean;
+  showUserPoints?: boolean;
   onBackClick?: () => void;
 }
 
@@ -33,6 +34,7 @@ const BrandHeader: React.FC<BrandHeaderProps> = ({
   showBackButton = true,
   backButtonPath = "/",
   showUserProfile = true,
+  showUserPoints = true,
   onBackClick,
 }) => {
   const navigate = useNavigate();
@@ -69,19 +71,24 @@ const BrandHeader: React.FC<BrandHeaderProps> = ({
 
       {showUserProfile && (
         <button className={styles.profileButton} onClick={handleClickProfile}>
-          <div className={styles.points}>
-            <Typography weight="regular" size={14} lineHeight={18}>
-              {data?.points}
-            </Typography>
-            <BPointIcon width={15} height={12} />
+          {showUserPoints && (
+            <div className={styles.points}>
+              <Typography weight="regular" size={14} lineHeight={18}>
+                {data?.points}
+              </Typography>
+              <BPointIcon width={15} height={12} />
+            </div>
+          )}
+
+          <div className={styles.avatarWrapper}>
+            <img
+              alt={data?.username}
+              className={styles.avatar}
+              src={data?.photoUrl}
+              width={32}
+              height={32}
+            />
           </div>
-          <img
-            alt={data?.username}
-            className={styles.avatar}
-            src={data?.photoUrl}
-            width={32}
-            height={32}
-          />
         </button>
       )}
     </div>
