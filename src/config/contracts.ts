@@ -7,13 +7,13 @@ export const BRND_STAKING_CONFIG = {
 } as const;
 
 export const BRND_SEASON_1_CONFIG = {
-  CONTRACT: "0x5cf1479711badc8f08d3ae40fc5b271783e73dc9" as `0x${string}`,
+  CONTRACT: "0x1b82d1ff6a082195717a739af66a48b228a2df06" as `0x${string}`,
   BRND_TOKEN: "0x41Ed0311640A5e489A90940b1c33433501a21B07" as `0x${string}`,
   CHAIN_ID: 8453, // Base mainnet
 } as const;
 
 export const AIRDROP_CONTRACT_CONFIG = {
-  CONTRACT: "0x6ccc6c90f0083a63c6c08041cc96b351ab6a728f" as `0x${string}`,
+  CONTRACT: "0xf5ea5a8aa8722aa72cbb86d4cd9adece26a5cd6d" as `0x${string}`,
   BRND_TOKEN: "0x41Ed0311640A5e489A90940b1c33433501a21B07" as `0x${string}`,
   CHAIN_ID: 8453, // Base mainnet
 } as const;

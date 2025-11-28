@@ -89,8 +89,11 @@ function AirdropPage(): React.ReactNode {
     [shouldFetch]
   );
 
-  const { data, isLoading, error, refetch } =
+  const { data, isLoading, isFetching, error, refetch } =
     useAirdropCheck(airdropCheckOptions);
+
+  // Use isFetching for refetches, isLoading for initial load
+  const isCheckingAirdrop = isLoading || isFetching;
 
   const { data: leaderboardData, isLoading: leaderboardLoading } =
     useAirdropLeaderboard(100);
@@ -290,7 +293,7 @@ function AirdropPage(): React.ReactNode {
           <Button
             caption={"Try Again"}
             onClick={handleCheckAirdrop}
-            loading={isLoading}
+            loading={isCheckingAirdrop}
           />
         </div>
       </div>
@@ -487,10 +490,10 @@ function AirdropPage(): React.ReactNode {
             type="button"
             className={styles.multipliersTextButton}
             onClick={handleCheckAirdrop}
-            disabled={isLoading}
+            disabled={isCheckingAirdrop}
           >
             Update Multipliers
-            {isLoading && (
+            {isCheckingAirdrop && (
               <span className={styles.loadingSpinner} aria-hidden />
             )}
           </button>
@@ -894,7 +897,7 @@ function AirdropPage(): React.ReactNode {
                   iconLeft={<CheckLabelIcon />}
                   caption="Check Eligibility"
                   onClick={handleCheckAirdrop}
-                  loading={isLoading}
+                  loading={isCheckingAirdrop}
                 />
               );
             }
@@ -943,7 +946,7 @@ function AirdropPage(): React.ReactNode {
                   iconLeft={<CheckLabelIcon />}
                   caption="Check Eligibility"
                   onClick={handleCheckAirdrop}
-                  loading={isLoading}
+                  loading={isCheckingAirdrop}
                 />
               );
             }
@@ -1013,7 +1016,7 @@ function AirdropPage(): React.ReactNode {
                   isLive ? "Check Eligibility" : `Claim In ${countdownLabel}`
                 }
                 onClick={isLive ? handleCheckAirdrop : handleCheckAirdrop}
-                loading={isLoading}
+                loading={isCheckingAirdrop}
               />
             );
           })()}

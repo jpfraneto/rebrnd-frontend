@@ -80,6 +80,7 @@ export default function PodiumView({}: PodiumViewProps) {
     executeClaimReward,
     isPending: isClaimPending,
     isConfirming: isClaimConfirming,
+    isLoadingBrndBalance,
   } = useStoriesInMotion(
     // onAuthorizeSuccess - after wallet authorization
     (txData) => {
@@ -130,7 +131,7 @@ export default function PodiumView({}: PodiumViewProps) {
           hasVoted: true,
           hasShared: false,
           hasClaimed: false,
-          voteId: authData?.todaysVoteStatus?.voteId || null, // Keep existing if available
+          voteId: txHash, // Use transaction hash as vote ID
           castHash: null,
           transactionHash: txHash,
           day: day,
@@ -177,7 +178,7 @@ export default function PodiumView({}: PodiumViewProps) {
           hasVoted: true,
           hasShared: true,
           hasClaimed: true,
-          voteId: authData?.todaysVoteStatus?.voteId || null,
+          voteId: transactionHash || authData?.todaysVoteStatus?.voteId || null, // Use transaction hash as vote ID
           castHash: castHash || null,
           transactionHash: transactionHash || null,
           day: day,
@@ -578,8 +579,7 @@ export default function PodiumView({}: PodiumViewProps) {
         setIsVerifying(true);
 
         const castHash = castResponse.cast?.hash;
-        const voteId =
-          authData?.todaysVoteStatus?.voteId || authData?.todaysVote?.id || "";
+        const voteId = transactionHash || ""; // Use transaction hash as vote ID
 
         try {
           const verificationResult = await verifyShareAndGetClaimSignature(
@@ -602,7 +602,7 @@ export default function PodiumView({}: PodiumViewProps) {
               hasVoted: true,
               hasShared: true,
               hasClaimed: false,
-              voteId: voteId || null,
+              voteId: transactionHash || null, // Use transaction hash as vote ID
               castHash: castHash,
               transactionHash: transactionHash || null,
               day: day,
@@ -918,7 +918,12 @@ export default function PodiumView({}: PodiumViewProps) {
           {/* Show insufficient balance warning */}
           {(() => {
             const votingStatus = determineVotingStrategy();
+            // Only show insufficient balance warning when:
+            // 1. Balance data has finished loading (not while loading)
+            // 2. User hasn't voted yet
+            // 3. Strategy is actually "insufficient-brnd" 
             if (
+              !isLoadingBrndBalance && // Wait for balance to load
               votingStatus.strategy === "insufficient-brnd" &&
               !hasVotedOnChain
             ) {

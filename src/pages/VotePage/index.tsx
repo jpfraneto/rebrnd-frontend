@@ -74,7 +74,6 @@ function VotePage(): React.ReactNode {
 
   // Determine if we need to fetch vote data via fallback
   // This happens when we have voteStatus but no brand data in todaysVote
-  // BUT: Don't fetch if we just optimistically updated (has transactionHash but no voteId)
   const needsFallbackData = useMemo(() => {
     if (!user) return false;
 
@@ -83,19 +82,15 @@ function VotePage(): React.ReactNode {
       user.todaysVote?.brand1 &&
       user.todaysVote?.brand2 &&
       user.todaysVote?.brand3;
-    const hasTransactionHash = user.todaysVoteStatus?.transactionHash;
-    const hasVoteId = user.todaysVoteStatus?.voteId || user.todaysVote?.id;
-
-    // If we have a transaction hash but no voteId, this is a fresh optimistic update
-    // Don't fetch fallback data - we'll wait for the backend to catch up
-    const isOptimisticUpdate = hasTransactionHash && !hasVoteId;
 
     // Need fallback if:
     // 1. We have a specific unixDate but no vote data, OR
-    // 2. We have voteStatus indicating a vote exists but no brand data AND it's not a fresh optimistic update
+    // 2. We have voteStatus indicating a vote exists but no brand data
     return (
       (unixDate && !user.todaysVote && !user.todaysVoteStatus) ||
-      (hasVoteStatus && !hasVoteData && user.todaysVoteStatus?.day && !isOptimisticUpdate)
+      (hasVoteStatus &&
+        !hasVoteData &&
+        user.todaysVoteStatus?.day)
     );
   }, [user, unixDate]);
 
@@ -117,12 +112,14 @@ function VotePage(): React.ReactNode {
 
   const voteStatus = user?.todaysVoteStatus;
   const hasTransactionHash = voteStatus?.transactionHash;
-  const hasVoteId = voteStatus?.voteId || user?.todaysVote?.id;
-  const isOptimisticUpdate = hasTransactionHash && !hasVoteId;
+  // Since transaction hash IS the vote ID, we always have a vote ID when we have a transaction hash
+  const hasVoteId = voteStatus?.voteId || voteStatus?.transactionHash || user?.todaysVote?.id;
+  const isOptimisticUpdate = false; // No more optimistic updates since txHash IS the vote ID
 
   // Loading state: true if we're loading auth OR fetching fallback data
-  // BUT: Don't show loading if we have an optimistic update (transaction hash but no voteId)
-  const isLoading = authLoading || (needsFallbackData && fallbackLoading && !isOptimisticUpdate);
+  const isLoading =
+    authLoading ||
+    (needsFallbackData && fallbackLoading);
 
   /**
    * Determines if the voting process was successful based on URL search parameters.
@@ -151,25 +148,48 @@ function VotePage(): React.ReactNode {
 
     const status = user.todaysVoteStatus;
     // Check brands from both todaysVote and votes (fallback)
+    // Prioritize todaysVote (which includes optimistic updates) over fallback votes
     const brandData = user.todaysVote || votes;
-    const hasBrandData = brandData?.brand1 && brandData?.brand2 && brandData?.brand3;
+    // Check if brands exist (from optimistic update or backend)
+    const hasBrandData = !!(
+      brandData?.brand1 &&
+      brandData?.brand2 &&
+      brandData?.brand3
+    );
     const hasTransactionHash = status?.transactionHash;
-    const hasVoteId = status?.voteId || user.todaysVote?.id || votes?.id;
+    // Since transaction hash IS the vote ID, we always have a vote ID when we have a transaction hash
+    const hasVoteId = status?.voteId || status?.transactionHash || user.todaysVote?.id || votes?.id;
 
-    // If we have an optimistic update (transaction hash but no voteId), don't show loading
-    // The UI should update immediately with the transaction hash
-    const isOptimisticUpdate = hasTransactionHash && !hasVoteId;
+    // No more optimistic updates since transaction hash IS the vote ID
+    const isOptimisticUpdate = false;
 
-    // If we're loading auth data AND we don't have an optimistic update, show loading
-    // BUT: If we have an optimistic update, skip loading and show the state immediately
-    if (authLoading && !isOptimisticUpdate) {
-      return { type: "loading" };
+    // PRIORITY 1: If we have vote status AND brand data, show the state immediately
+    // This handles both optimistic updates (with brands) and backend data
+    // Skip ALL loading checks - we have everything we need to determine the state
+    // This must come BEFORE any loading checks to ensure immediate UI update
+    if (status?.hasVoted && hasBrandData) {
+      // We have everything we need - proceed directly to state determination below
+      // The state checks below (lines 200, 213, 236) will catch the correct state
     }
-
-    // If we have vote status indicating a vote exists but no brand data yet, keep loading
-    // UNLESS it's an optimistic update (then show the voted state immediately)
-    if (status?.hasVoted && !hasBrandData && needsFallbackData && !isOptimisticUpdate) {
+    // PRIORITY 2: If we have an optimistic update (transaction hash), don't show loading
+    // Even if we don't have brands yet, the PodiumView can show the transaction hash
+    else if (isOptimisticUpdate) {
+      // Optimistic update - continue to state determination below
+      // Line 248 will handle this case
+    }
+    // PRIORITY 3: Only show loading if we're actually loading and don't have optimistic update
+    // AND we don't have the data we need
+    else if (authLoading && !isOptimisticUpdate && !hasBrandData) {
+      // If we're loading auth data AND we don't have an optimistic update AND no brands, show loading
       return { type: "loading" };
+    } else if (status?.hasVoted && !hasBrandData && !isOptimisticUpdate) {
+      // If we have vote status but no brand data and we're not in an optimistic update
+      // Only show loading if we're actually fetching fallback data
+      if (needsFallbackData && fallbackLoading) {
+        return { type: "loading" };
+      }
+      // If we don't have brands and we're not fetching, we might be in a race condition
+      // But we should still try to show a state rather than infinite loading
     }
 
     // Extract transaction hashes from user data
@@ -192,7 +212,7 @@ function VotePage(): React.ReactNode {
     if (hasClaimed && hasBrandData) {
       return {
         type: "claimed",
-        voteId: status.voteId || user.todaysVote?.id || votes?.id || "",
+        voteId: status.voteId || status.transactionHash || user.todaysVote?.id || votes?.id || "", // Use transaction hash as vote ID
         voteTransactionHash,
         castHash,
         claimTransactionHash,
@@ -205,7 +225,7 @@ function VotePage(): React.ReactNode {
     if (status?.hasShared && status?.hasVoted && hasBrandData) {
       return {
         type: "shared_not_claimed",
-        voteId: status.voteId || user.todaysVote?.id || votes?.id || "",
+        voteId: status.voteId || status.transactionHash || user.todaysVote?.id || votes?.id || "", // Use transaction hash as vote ID
         voteTransactionHash,
         castHash,
         brands: [brandData.brand2, brandData.brand1, brandData.brand3], // UI order: 2nd, 1st, 3rd
@@ -219,28 +239,13 @@ function VotePage(): React.ReactNode {
     if (status?.hasVoted && hasBrandData) {
       return {
         type: "voted_not_shared",
-        voteId: status.voteId || user.todaysVote?.id || votes?.id || "",
+        voteId: status.voteId || status.transactionHash || user.todaysVote?.id || votes?.id || "", // Use transaction hash as vote ID
         voteTransactionHash,
         brands: [brandData.brand2, brandData.brand1, brandData.brand3], // UI order: 2nd, 1st, 3rd
       };
     }
 
-    // If we have an optimistic update (transaction hash but no voteId/brands yet),
-    // still show PodiumView so user can see the transaction hash
-    // The PodiumView will handle displaying the state correctly
-    if (status?.hasVoted && isOptimisticUpdate) {
-      // If we have brands from optimistic update, show voted_not_shared
-      if (hasBrandData) {
-        return {
-          type: "voted_not_shared",
-          voteId: "",
-          voteTransactionHash,
-          brands: [brandData.brand2, brandData.brand1, brandData.brand3],
-        };
-      }
-      // Otherwise show PodiumView which will display the transaction hash
-      return { type: "not_voted" };
-    }
+    // Since transaction hash IS the vote ID, we no longer need special optimistic update handling
 
     // State 1: Not voted today
     // User can vote on their top 3 brands
@@ -384,16 +389,10 @@ function VotePage(): React.ReactNode {
     }
 
     // If we detect a state change that requires data refresh, trigger it
-    // BUT: Don't refetch if we have an optimistic update (transaction hash but no voteId)
-    // The optimistic update already has the data we need
     if (votingState.type !== "loading" && votingState.type !== "not_voted") {
-      const hasTransactionHash = voteStatus?.transactionHash;
-      const hasVoteId = voteStatus?.voteId || user?.todaysVote?.id;
-      const isOptimisticUpdate = hasTransactionHash && !hasVoteId;
-      
-      // Only refetch if we don't have brand data AND it's not an optimistic update
+      // Only refetch if we don't have brand data
       const brandData = user?.todaysVote || votes;
-      if (!brandData?.brand1 && voteStatus?.hasVoted && !isOptimisticUpdate) {
+      if (!brandData?.brand1 && voteStatus?.hasVoted) {
         setIsTransitioning(true);
         refetchAuth();
       }

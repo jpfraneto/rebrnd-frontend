@@ -75,7 +75,7 @@ export default function ShareView({
           hasVoted: true,
           hasShared: true,
           hasClaimed: true,
-          voteId: currentVoteId || authData?.todaysVoteStatus?.voteId || null,
+          voteId: transactionHash || authData?.todaysVoteStatus?.voteId || null, // Use transaction hash as vote ID
           castHash: castHash || authData?.todaysVoteStatus?.castHash || null,
           transactionHash:
             transactionHash ||
@@ -97,7 +97,7 @@ export default function ShareView({
       navigateToView?.(
         VotingViewEnum.CONGRATS,
         currentBrands,
-        currentVoteId,
+        transactionHash || "", // Use transaction hash as vote ID
         transactionHash,
         castHash || undefined
       );
@@ -125,7 +125,7 @@ export default function ShareView({
    */
   const handleClickSkip = useCallback(() => {
     if (!currentVoteId || currentVoteId === "") {
-      navigate(-1);
+      navigate("/");
     } else {
       navigate("/");
     }
@@ -178,11 +178,15 @@ export default function ShareView({
           console.log("🔐 [ShareView] Verifying share...", {
             castHash,
             voteId: currentVoteId,
+            transactionHash,
           });
 
+          // Use transaction hash as the vote ID since backend now uses txHash as primary key
+          const voteIdForVerification = transactionHash || "";
+          
           const verificationResult = await verifyShareAndGetClaimSignature(
             castHash,
-            currentVoteId,
+            voteIdForVerification,
             transactionHash
           );
 
@@ -209,8 +213,7 @@ export default function ShareView({
               hasVoted: true,
               hasShared: true,
               hasClaimed: false,
-              voteId:
-                currentVoteId || authData?.todaysVoteStatus?.voteId || null,
+              voteId: transactionHash || null, // Use transaction hash as vote ID
               castHash: castHash,
               transactionHash:
                 transactionHash ||
@@ -301,7 +304,8 @@ export default function ShareView({
   ]);
 
   // Show loading or error state if data is missing
-  if (!currentBrands || currentBrands.length < 3 || !currentVoteId) {
+  // Note: currentVoteId might be empty during optimistic update, but we can still show the UI
+  if (!currentBrands || currentBrands.length < 3) {
     return (
       <div className={styles.body}>
         <div className={styles.container}>
@@ -414,7 +418,7 @@ export default function ShareView({
       )}
 
       {/* Show claim error */}
-      {claimError && (
+      {(claimError || shareError) && (
         <div className={styles.errorMessage}>
           <Typography
             variant={"geist"}
@@ -423,7 +427,7 @@ export default function ShareView({
             lineHeight={18}
             textAlign={"center"}
           >
-            {claimError}
+            {claimError || shareError}
           </Typography>
         </div>
       )}

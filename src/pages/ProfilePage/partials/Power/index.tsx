@@ -47,6 +47,7 @@ const Power: React.FC = () => {
   const [isLevelingUp, setIsLevelingUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentLevel, setCurrentLevel] = useState<number>(0); // Store current level from backend
+  const [pendingLevelUp, setPendingLevelUp] = useState<number | null>(null); // Track level we're leveling up to
 
   const { openModal } = useModal();
   const queryClient = useQueryClient();
@@ -75,6 +76,15 @@ const Power: React.FC = () => {
     // onLevelUpSuccess
     async (txData) => {
       console.log("Level up successful!", txData);
+      const targetLevel = pendingLevelUp;
+
+      if (targetLevel !== null) {
+        // Optimistically update the UI immediately
+        console.log("Optimistically updating level to:", targetLevel);
+        setCurrentLevel(targetLevel);
+        setPendingLevelUp(null);
+      }
+
       setIsLevelingUp(false);
 
       // Refresh contract data first
@@ -83,12 +93,66 @@ const Power: React.FC = () => {
       // Invalidate auth queries to refresh backend data
       queryClient.invalidateQueries({ queryKey: ["auth"] });
 
-      // Wait a bit for data to sync, then reload power level info
-      setTimeout(async () => {
-        await loadPowerLevelInfo();
-        // Show success feedback
-        sdk.haptics.notificationOccurred("success");
-      }, 1000);
+      // Show success feedback immediately
+      sdk.haptics.notificationOccurred("success");
+
+      // Retry loading from backend with exponential backoff until it matches
+      // Only update UI if backend has synced to avoid overwriting optimistic update
+      let retryCount = 0;
+      const maxRetries = 5;
+      const retryDelay = 1000; // Start with 1 second
+
+      const retryLoadPowerLevelInfo = async () => {
+        try {
+          if (!userFid) return;
+
+          // Load directly to check the response
+          const info = await getPowerLevelInfo(userFid);
+          const backendCurrentLevel =
+            info.currentLevel ?? info.currentPowerLevel?.id ?? 0;
+
+          // Check if backend has caught up
+          if (
+            targetLevel !== null &&
+            backendCurrentLevel < targetLevel &&
+            retryCount < maxRetries
+          ) {
+            retryCount++;
+            const delay = retryDelay * Math.pow(2, retryCount - 1); // Exponential backoff
+            console.log(
+              `Backend not synced yet (got ${backendCurrentLevel}, expected ${targetLevel}). Retrying in ${delay}ms (attempt ${retryCount}/${maxRetries})`
+            );
+            setTimeout(retryLoadPowerLevelInfo, delay);
+          } else {
+            // Backend has synced or we've exceeded retries
+            if (targetLevel !== null && backendCurrentLevel >= targetLevel) {
+              console.log(`Backend synced! Level: ${backendCurrentLevel}`);
+            } else {
+              console.log(
+                `Backend sync incomplete after ${retryCount} retries. Keeping optimistic update.`
+              );
+            }
+            // Full reload to update all state (levels list, etc.)
+            // This will update currentLevel only if backend value is >= current optimistic value
+            await loadPowerLevelInfo();
+          }
+        } catch (error) {
+          console.error("Failed to load power level info during retry:", error);
+          // Still retry if we haven't exceeded max retries
+          if (retryCount < maxRetries) {
+            retryCount++;
+            const delay = retryDelay * Math.pow(2, retryCount - 1);
+            setTimeout(retryLoadPowerLevelInfo, delay);
+          } else {
+            // Even on error, try to reload once more to get levels list updated
+            console.log("Retries exhausted, attempting final load");
+            await loadPowerLevelInfo();
+          }
+        }
+      };
+
+      // Start retry process after initial delay
+      setTimeout(retryLoadPowerLevelInfo, retryDelay);
     }
   );
 
@@ -102,10 +166,25 @@ const Power: React.FC = () => {
       console.log("THE INFO IS: ", info);
 
       // Store current level from backend (this is the source of truth)
+      // But don't overwrite if we have an optimistic update that's higher
       const backendCurrentLevel =
         info.currentLevel ?? info.currentPowerLevel?.id ?? 0;
-      setCurrentLevel(backendCurrentLevel);
-      console.log("Current level from backend:", backendCurrentLevel);
+
+      // Only update if backend level is >= current level (to preserve optimistic updates)
+      setCurrentLevel((prevLevel) => {
+        if (backendCurrentLevel >= prevLevel) {
+          console.log(
+            "Updating current level from backend:",
+            backendCurrentLevel
+          );
+          return backendCurrentLevel;
+        } else {
+          console.log(
+            `Keeping optimistic level ${prevLevel} (backend: ${backendCurrentLevel})`
+          );
+          return prevLevel;
+        }
+      });
 
       // Convert backend levels to component format
       const convertedLevels =
@@ -312,16 +391,27 @@ const Power: React.FC = () => {
   // Reload power level info when userInfo (brndPowerLevel) changes
   // This ensures the screen updates after level up when contract data refreshes
   // Note: We still check contract level changes, but backend currentLevel is the source of truth
+  // Skip if we have a pending level up (optimistic update in progress)
   useEffect(() => {
-    if (userFid && userInfo?.brndPowerLevel !== undefined && !isLoading) {
-      console.log(
-        "User info changed, reloading power level info. New contract level:",
-        userInfo.brndPowerLevel
-      );
-      // Reload from backend to get the most up-to-date currentLevel
-      loadPowerLevelInfo();
+    if (
+      userFid &&
+      userInfo?.brndPowerLevel !== undefined &&
+      !isLoading &&
+      !pendingLevelUp &&
+      !isLevelingUp
+    ) {
+      // Only reload if contract level is higher than current level (to avoid overwriting optimistic updates)
+      const contractLevel = userInfo.brndPowerLevel;
+      if (contractLevel > currentLevel) {
+        console.log(
+          "User info changed, reloading power level info. New contract level:",
+          contractLevel
+        );
+        // Reload from backend to get the most up-to-date currentLevel
+        loadPowerLevelInfo();
+      }
     }
-  }, [userInfo?.brndPowerLevel]);
+  }, [userInfo?.brndPowerLevel, pendingLevelUp, isLevelingUp]);
 
   const handleLevelAction = async (level: Level) => {
     console.log("inside the level up action. the level is: ", level);
@@ -383,6 +473,8 @@ const Power: React.FC = () => {
     if (!targetLevel) return;
     console.log("the target level is: ", targetLevel);
 
+    // Store the target level so we can optimistically update on success
+    setPendingLevelUp(targetLevel);
     setIsLevelingUp(true);
     console.log("the is leveling up is: ", isLevelingUp);
     try {
@@ -394,6 +486,7 @@ const Power: React.FC = () => {
       console.error("Level up failed:", error);
 
       // Error is handled by useStoriesInMotion hook
+      setPendingLevelUp(null);
       setIsLevelingUp(false);
     }
   };

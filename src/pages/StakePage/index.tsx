@@ -14,6 +14,11 @@ export default function StakePage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [txHash, setTxHash] = useState("");
+  
+  // Optimistic balance updates
+  const [optimisticBrndBalance, setOptimisticBrndBalance] = useState<string | null>(null);
+  const [optimisticStakedAmount, setOptimisticStakedAmount] = useState<string | null>(null);
+  const [optimisticVaultShares, setOptimisticVaultShares] = useState<string | null>(null);
 
   const { connect, connectors } = useConnect();
 
@@ -33,28 +38,65 @@ export default function StakePage() {
     // onStakeSuccess
     (txData) => {
       console.log("Stake successful!", txData);
+      sdk.haptics.notificationOccurred("success");
       setTxHash(txData.txHash);
       setShowSuccess(true);
+      
+      // Optimistically update balances
+      const stakedAmountValue = parseFloat(stakeAmount);
+      if (stakedAmountValue > 0) {
+        const newBrndBalance = (parseFloat(brndBalance) - stakedAmountValue).toString();
+        const newStakedAmount = (parseFloat(stakedBrndAmount) + stakedAmountValue).toString();
+        // Note: vault shares would need to be calculated based on exchange rate, 
+        // but for simplicity we'll let the contract data refresh handle it
+        setOptimisticBrndBalance(newBrndBalance);
+        setOptimisticStakedAmount(newStakedAmount);
+      }
+      
       setStakeAmount("");
       setTimeout(() => {
         setShowSuccess(false);
-      }, 3000);
+        // Clear optimistic updates after 10 seconds to let real data refresh
+        setOptimisticBrndBalance(null);
+        setOptimisticStakedAmount(null);
+      }, 10000);
     },
     // onWithdrawSuccess
     (txData) => {
       console.log("Withdraw successful!", txData);
+      sdk.haptics.notificationOccurred("success");
       setTxHash(txData.txHash);
       setShowSuccess(true);
+      
+      // Optimistically update balances for withdrawal
+      const withdrawnShares = parseFloat(withdrawAmount);
+      if (withdrawnShares > 0) {
+        // For withdrawal, we're removing vault shares and adding back BRND
+        // The exact BRND amount would depend on exchange rate, but we'll approximate
+        const newVaultShares = (parseFloat(vaultShares) - withdrawnShares).toString();
+        const newStakedAmount = (parseFloat(stakedBrndAmount) - withdrawnShares).toString();
+        // Approximate BRND return (1:1 ratio for simplicity)
+        const newBrndBalance = (parseFloat(brndBalance) + withdrawnShares).toString();
+        
+        setOptimisticVaultShares(newVaultShares);
+        setOptimisticStakedAmount(newStakedAmount);
+        setOptimisticBrndBalance(newBrndBalance);
+      }
+      
       setWithdrawAmount("");
       setTimeout(() => {
         setShowSuccess(false);
-      }, 3000);
+        // Clear optimistic updates after 10 seconds to let real data refresh
+        setOptimisticBrndBalance(null);
+        setOptimisticStakedAmount(null);
+        setOptimisticVaultShares(null);
+      }, 10000);
     }
   );
 
   const handleStake = () => {
     if (!stakeAmount || parseFloat(stakeAmount) <= 0) return;
-    if (parseFloat(stakeAmount) > parseFloat(brndBalance)) {
+    if (parseFloat(stakeAmount) > parseFloat(getDisplayBrndBalance())) {
       return;
     }
     stakeBrnd({ amount: stakeAmount });
@@ -62,15 +104,21 @@ export default function StakePage() {
 
   const handleWithdraw = () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
+    // Use real vault shares (not optimistic) for validation to prevent contract errors
     if (parseFloat(withdrawAmount) > parseFloat(vaultShares)) {
       return;
     }
     withdrawBrnd({ shares: withdrawAmount });
   };
 
+  // Helper functions to get display balances (optimistic or real)
+  const getDisplayBrndBalance = () => optimisticBrndBalance || brndBalance;
+  const getDisplayStakedAmount = () => optimisticStakedAmount || stakedBrndAmount;
+  const getDisplayVaultShares = () => optimisticVaultShares || vaultShares;
+
   const setMaxStake = () => {
     sdk.haptics.selectionChanged();
-    setStakeAmount(Math.floor(parseFloat(brndBalance)).toString());
+    setStakeAmount(Math.floor(parseFloat(getDisplayBrndBalance())).toString());
   };
 
   const setMaxWithdraw = () => {
@@ -98,15 +146,7 @@ export default function StakePage() {
     navigate(-1);
   };
 
-  // Close modal on successful transaction
-  useEffect(() => {
-    if (isConfirmed && showSuccess) {
-      const timer = setTimeout(() => {
-        navigate(-1);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isConfirmed, showSuccess, navigate]);
+  // Remove automatic redirect - let user stay on the page to see their updated balances
 
   return (
     <div className={styles.container}>
@@ -140,7 +180,7 @@ export default function StakePage() {
                   Your Balance:
                 </Typography>
                 <p className={styles.balanceAmount}>
-                  {formatNumber(brndBalance)}
+                  {formatNumber(getDisplayBrndBalance())}
                 </p>
                 <p className={styles.balanceToken}>$BRND</p>
               </div>
@@ -156,7 +196,7 @@ export default function StakePage() {
                   Staked:
                 </Typography>
                 <p className={`${styles.balanceAmount} ${styles.staked}`}>
-                  {formatNumber(stakedBrndAmount)}
+                  {formatNumber(getDisplayStakedAmount())}
                 </p>
                 <p className={styles.balanceToken}>$BRND</p>
               </div>
@@ -221,6 +261,8 @@ export default function StakePage() {
               onClick={() => {
                 sdk.haptics.selectionChanged();
                 setActiveTab("stake");
+                // Clear success message when switching tabs
+                setShowSuccess(false);
               }}
               className={`${styles.tab} ${
                 activeTab === "stake" ? styles.tabActive : ""
@@ -233,6 +275,8 @@ export default function StakePage() {
               onClick={() => {
                 sdk.haptics.selectionChanged();
                 setActiveTab("withdraw");
+                // Clear success message when switching tabs
+                setShowSuccess(false);
               }}
               className={`${styles.tab} ${
                 activeTab === "withdraw" ? styles.tabWithdrawActive : ""
@@ -272,7 +316,7 @@ export default function StakePage() {
                     </button>
                   </div>
                   {stakeAmount &&
-                    parseFloat(stakeAmount) > parseFloat(brndBalance) && (
+                    parseFloat(stakeAmount) > parseFloat(getDisplayBrndBalance()) && (
                       <p className={styles.errorText}>
                         ⚠️ INSUFFICIENT BALANCE
                       </p>
@@ -294,7 +338,7 @@ export default function StakePage() {
                     isConfirming ||
                     !stakeAmount ||
                     parseFloat(stakeAmount) <= 0 ||
-                    parseFloat(stakeAmount) > parseFloat(brndBalance) ||
+                    parseFloat(stakeAmount) > parseFloat(getDisplayBrndBalance()) ||
                     isLoadingBrndBalances
                   }
                   loading={isConfirming}
@@ -320,7 +364,7 @@ export default function StakePage() {
                       max={
                         activeTab === "withdraw"
                           ? parseFloat(vaultShares)
-                          : parseFloat(brndBalance)
+                          : parseFloat(getDisplayBrndBalance())
                       }
                       min={0}
                     />
@@ -376,29 +420,26 @@ export default function StakePage() {
               <div className={styles.errorBanner}>
                 <div>
                   <Typography variant="geist" weight="medium" size={14}>
-                    {error}
+                    {error.includes('execution reverted: SR') 
+                      ? 'Withdrawal failed: You may need to wait before making another withdrawal. The vault has a cooldown period for consecutive withdrawals.'
+                      : error}
                   </Typography>
                 </div>
               </div>
             )}
 
             {/* Success Message */}
-            {showSuccess && (
-              <div className={styles.successBanner}>
-                <span className={styles.successIcon}>✓</span>
-                <div className={styles.successContent}>
-                  <p className={styles.successTitle}>SUCCESS!</p>
-                  {txHash && (
-                    <a
-                      href={`https://basescan.org/tx/${txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.txLink}
-                    >
-                      VIEW ON BASESCAN →
-                    </a>
-                  )}
-                </div>
+            {showSuccess && txHash && (
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <Typography
+                  variant="geist"
+                  weight="medium"
+                  size={14}
+                  lineHeight={16}
+                  textAlign="center"
+                >
+                  Success, tx hash: {txHash}
+                </Typography>
               </div>
             )}
           </div>

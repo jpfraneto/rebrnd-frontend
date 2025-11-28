@@ -18,6 +18,7 @@ import BRNDImage6 from "@/assets/images/brnd-intro-imgs/png-brnd-user-rank.png";
 
 // Components
 import Typography from "@/components/Typography";
+import LoaderIndicator from "@/shared/components/LoaderIndicator";
 
 // Hocs
 import withProtectionRoute from "@/hocs/withProtectionRoute";
@@ -33,7 +34,7 @@ const images = [
 
 function LoginPage() {
   const { isAuthenticated } = useProfile();
-  const { miniappContext, isInitialized } = useContext(AuthContext);
+  const { miniappContext, isInitialized, isLoading } = useContext(AuthContext);
 
   const renderDecoration = useMemo(
     () => (
@@ -78,8 +79,22 @@ function LoginPage() {
 
   // Determine what to show based on different states
   const renderFooterContent = () => {
-    // If miniapp hasn't been initialized or no user context, show "Open Miniapp" button
-    if (!isInitialized || !miniappContext?.user?.fid) {
+    // FIRST: Show spinner while authentication is loading or miniapp is initializing
+    if (!isInitialized || isLoading) {
+      return (
+        <motion.div
+          className={styles.footer}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <LoaderIndicator size={30} variant="fullscreen" />
+        </motion.div>
+      );
+    }
+
+    // SECOND: If miniapp initialized but no user context, show "Open Miniapp" button
+    if (!miniappContext?.user?.fid) {
       return (
         <motion.div
           className={styles.footer}
@@ -101,7 +116,7 @@ function LoginPage() {
       );
     }
 
-    // If we have user context but there's an auth error (server communication issue)
+    // THIRD: If we have user context but auth failed (ONLY show this after loading is complete)
     if (!isAuthenticated && miniappContext?.user?.fid) {
       return (
         <>

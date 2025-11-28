@@ -9,7 +9,6 @@ import Typography from "@/components/Typography";
 
 // Assets
 import AddIcon from "@/assets/icons/add-solid.svg?react";
-import BPointIcon from "@/assets/icons/point-b.svg?react";
 
 // Hooks
 import { Brand } from "@/hooks/brands";
@@ -27,15 +26,6 @@ export default function PodiumColumn({
   position,
   onClick,
 }: Readonly<PodiumColumnProps>) {
-  /**
-   * A mapping of podium positions to their respective points.
-   * @type {Record<number, string>}
-   */
-  const points: Record<number, string> = {
-    1: "60",
-    2: "30",
-    3: "10",
-  };
 
   return (
     <div
