@@ -111,14 +111,18 @@
 
 .actionGroup .Button {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .action {
   position: relative;
   width: 100%;
-  max-width: 342px;
-
   flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .continueButton {
@@ -127,6 +131,7 @@
   flex-direction: row;
   justify-content: center;
   align-items: center;
+  margin: 0 auto; // ensure centering if used in block contexts
   padding: 12px;
   gap: 8px;
   width: 100%;

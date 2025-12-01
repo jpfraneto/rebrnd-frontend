@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useConnect } from "wagmi";
 import { useContractWagmi } from "@/shared/hooks/contract/useContractWagmi";
@@ -14,11 +14,17 @@ export default function StakePage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [txHash, setTxHash] = useState("");
-  
+
   // Optimistic balance updates
-  const [optimisticBrndBalance, setOptimisticBrndBalance] = useState<string | null>(null);
-  const [optimisticStakedAmount, setOptimisticStakedAmount] = useState<string | null>(null);
-  const [optimisticVaultShares, setOptimisticVaultShares] = useState<string | null>(null);
+  const [optimisticBrndBalance, setOptimisticBrndBalance] = useState<
+    string | null
+  >(null);
+  const [optimisticStakedAmount, setOptimisticStakedAmount] = useState<
+    string | null
+  >(null);
+  const [_optimisticVaultShares, setOptimisticVaultShares] = useState<
+    string | null
+  >(null);
 
   const { connect, connectors } = useConnect();
 
@@ -31,7 +37,6 @@ export default function StakePage() {
     withdrawBrnd,
     isPending,
     isConfirming,
-    isConfirmed,
     error,
     isLoadingBrndBalances,
   } = useContractWagmi(
@@ -41,18 +46,22 @@ export default function StakePage() {
       sdk.haptics.notificationOccurred("success");
       setTxHash(txData.txHash);
       setShowSuccess(true);
-      
+
       // Optimistically update balances
       const stakedAmountValue = parseFloat(stakeAmount);
       if (stakedAmountValue > 0) {
-        const newBrndBalance = (parseFloat(brndBalance) - stakedAmountValue).toString();
-        const newStakedAmount = (parseFloat(stakedBrndAmount) + stakedAmountValue).toString();
-        // Note: vault shares would need to be calculated based on exchange rate, 
+        const newBrndBalance = (
+          parseFloat(brndBalance) - stakedAmountValue
+        ).toString();
+        const newStakedAmount = (
+          parseFloat(stakedBrndAmount) + stakedAmountValue
+        ).toString();
+        // Note: vault shares would need to be calculated based on exchange rate,
         // but for simplicity we'll let the contract data refresh handle it
         setOptimisticBrndBalance(newBrndBalance);
         setOptimisticStakedAmount(newStakedAmount);
       }
-      
+
       setStakeAmount("");
       setTimeout(() => {
         setShowSuccess(false);
@@ -67,22 +76,28 @@ export default function StakePage() {
       sdk.haptics.notificationOccurred("success");
       setTxHash(txData.txHash);
       setShowSuccess(true);
-      
+
       // Optimistically update balances for withdrawal
       const withdrawnShares = parseFloat(withdrawAmount);
       if (withdrawnShares > 0) {
         // For withdrawal, we're removing vault shares and adding back BRND
         // The exact BRND amount would depend on exchange rate, but we'll approximate
-        const newVaultShares = (parseFloat(vaultShares) - withdrawnShares).toString();
-        const newStakedAmount = (parseFloat(stakedBrndAmount) - withdrawnShares).toString();
+        const newVaultShares = (
+          parseFloat(vaultShares) - withdrawnShares
+        ).toString();
+        const newStakedAmount = (
+          parseFloat(stakedBrndAmount) - withdrawnShares
+        ).toString();
         // Approximate BRND return (1:1 ratio for simplicity)
-        const newBrndBalance = (parseFloat(brndBalance) + withdrawnShares).toString();
-        
+        const newBrndBalance = (
+          parseFloat(brndBalance) + withdrawnShares
+        ).toString();
+
         setOptimisticVaultShares(newVaultShares);
         setOptimisticStakedAmount(newStakedAmount);
         setOptimisticBrndBalance(newBrndBalance);
       }
-      
+
       setWithdrawAmount("");
       setTimeout(() => {
         setShowSuccess(false);
@@ -113,8 +128,8 @@ export default function StakePage() {
 
   // Helper functions to get display balances (optimistic or real)
   const getDisplayBrndBalance = () => optimisticBrndBalance || brndBalance;
-  const getDisplayStakedAmount = () => optimisticStakedAmount || stakedBrndAmount;
-  const getDisplayVaultShares = () => optimisticVaultShares || vaultShares;
+  const getDisplayStakedAmount = () =>
+    optimisticStakedAmount || stakedBrndAmount;
 
   const setMaxStake = () => {
     sdk.haptics.selectionChanged();
@@ -316,7 +331,8 @@ export default function StakePage() {
                     </button>
                   </div>
                   {stakeAmount &&
-                    parseFloat(stakeAmount) > parseFloat(getDisplayBrndBalance()) && (
+                    parseFloat(stakeAmount) >
+                      parseFloat(getDisplayBrndBalance()) && (
                       <p className={styles.errorText}>
                         ⚠️ INSUFFICIENT BALANCE
                       </p>
@@ -338,7 +354,8 @@ export default function StakePage() {
                     isConfirming ||
                     !stakeAmount ||
                     parseFloat(stakeAmount) <= 0 ||
-                    parseFloat(stakeAmount) > parseFloat(getDisplayBrndBalance()) ||
+                    parseFloat(stakeAmount) >
+                      parseFloat(getDisplayBrndBalance()) ||
                     isLoadingBrndBalances
                   }
                   loading={isConfirming}
@@ -420,8 +437,8 @@ export default function StakePage() {
               <div className={styles.errorBanner}>
                 <div>
                   <Typography variant="geist" weight="medium" size={14}>
-                    {error.includes('execution reverted: SR') 
-                      ? 'Withdrawal failed: You may need to wait before making another withdrawal. The vault has a cooldown period for consecutive withdrawals.'
+                    {error.includes("execution reverted: SR")
+                      ? "Withdrawal failed: You may need to wait before making another withdrawal. The vault has a cooldown period for consecutive withdrawals."
                       : error}
                   </Typography>
                 </div>
@@ -430,7 +447,7 @@ export default function StakePage() {
 
             {/* Success Message */}
             {showSuccess && txHash && (
-              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+              <div style={{ marginTop: "16px", textAlign: "center" }}>
                 <Typography
                   variant="geist"
                   weight="medium"

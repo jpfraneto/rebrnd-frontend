@@ -88,9 +88,7 @@ function VotePage(): React.ReactNode {
     // 2. We have voteStatus indicating a vote exists but no brand data
     return (
       (unixDate && !user.todaysVote && !user.todaysVoteStatus) ||
-      (hasVoteStatus &&
-        !hasVoteData &&
-        user.todaysVoteStatus?.day)
+      (hasVoteStatus && !hasVoteData && user.todaysVoteStatus?.day)
     );
   }, [user, unixDate]);
 
@@ -111,15 +109,9 @@ function VotePage(): React.ReactNode {
   }, [user?.todaysVote, fallbackVotes]);
 
   const voteStatus = user?.todaysVoteStatus;
-  const hasTransactionHash = voteStatus?.transactionHash;
-  // Since transaction hash IS the vote ID, we always have a vote ID when we have a transaction hash
-  const hasVoteId = voteStatus?.voteId || voteStatus?.transactionHash || user?.todaysVote?.id;
-  const isOptimisticUpdate = false; // No more optimistic updates since txHash IS the vote ID
 
   // Loading state: true if we're loading auth OR fetching fallback data
-  const isLoading =
-    authLoading ||
-    (needsFallbackData && fallbackLoading);
+  const isLoading = authLoading || (needsFallbackData && fallbackLoading);
 
   /**
    * Determines if the voting process was successful based on URL search parameters.
@@ -156,12 +148,6 @@ function VotePage(): React.ReactNode {
       brandData?.brand2 &&
       brandData?.brand3
     );
-    const hasTransactionHash = status?.transactionHash;
-    // Since transaction hash IS the vote ID, we always have a vote ID when we have a transaction hash
-    const hasVoteId = status?.voteId || status?.transactionHash || user.todaysVote?.id || votes?.id;
-
-    // No more optimistic updates since transaction hash IS the vote ID
-    const isOptimisticUpdate = false;
 
     // PRIORITY 1: If we have vote status AND brand data, show the state immediately
     // This handles both optimistic updates (with brands) and backend data
@@ -171,19 +157,12 @@ function VotePage(): React.ReactNode {
       // We have everything we need - proceed directly to state determination below
       // The state checks below (lines 200, 213, 236) will catch the correct state
     }
-    // PRIORITY 2: If we have an optimistic update (transaction hash), don't show loading
-    // Even if we don't have brands yet, the PodiumView can show the transaction hash
-    else if (isOptimisticUpdate) {
-      // Optimistic update - continue to state determination below
-      // Line 248 will handle this case
-    }
-    // PRIORITY 3: Only show loading if we're actually loading and don't have optimistic update
-    // AND we don't have the data we need
-    else if (authLoading && !isOptimisticUpdate && !hasBrandData) {
-      // If we're loading auth data AND we don't have an optimistic update AND no brands, show loading
+    // PRIORITY 2: Only show loading if we're actually loading and don't have the data we need
+    else if (authLoading && !hasBrandData) {
+      // If we're loading auth data AND no brands, show loading
       return { type: "loading" };
-    } else if (status?.hasVoted && !hasBrandData && !isOptimisticUpdate) {
-      // If we have vote status but no brand data and we're not in an optimistic update
+    } else if (status?.hasVoted && !hasBrandData) {
+      // If we have vote status but no brand data
       // Only show loading if we're actually fetching fallback data
       if (needsFallbackData && fallbackLoading) {
         return { type: "loading" };
@@ -212,7 +191,12 @@ function VotePage(): React.ReactNode {
     if (hasClaimed && hasBrandData) {
       return {
         type: "claimed",
-        voteId: status.voteId || status.transactionHash || user.todaysVote?.id || votes?.id || "", // Use transaction hash as vote ID
+        voteId:
+          status.voteId ||
+          status.transactionHash ||
+          user.todaysVote?.id ||
+          votes?.id ||
+          "", // Use transaction hash as vote ID
         voteTransactionHash,
         castHash,
         claimTransactionHash,
@@ -225,7 +209,12 @@ function VotePage(): React.ReactNode {
     if (status?.hasShared && status?.hasVoted && hasBrandData) {
       return {
         type: "shared_not_claimed",
-        voteId: status.voteId || status.transactionHash || user.todaysVote?.id || votes?.id || "", // Use transaction hash as vote ID
+        voteId:
+          status.voteId ||
+          status.transactionHash ||
+          user.todaysVote?.id ||
+          votes?.id ||
+          "", // Use transaction hash as vote ID
         voteTransactionHash,
         castHash,
         brands: [brandData.brand2, brandData.brand1, brandData.brand3], // UI order: 2nd, 1st, 3rd
@@ -239,7 +228,12 @@ function VotePage(): React.ReactNode {
     if (status?.hasVoted && hasBrandData) {
       return {
         type: "voted_not_shared",
-        voteId: status.voteId || status.transactionHash || user.todaysVote?.id || votes?.id || "", // Use transaction hash as vote ID
+        voteId:
+          status.voteId ||
+          status.transactionHash ||
+          user.todaysVote?.id ||
+          votes?.id ||
+          "", // Use transaction hash as vote ID
         voteTransactionHash,
         brands: [brandData.brand2, brandData.brand1, brandData.brand3], // UI order: 2nd, 1st, 3rd
       };
