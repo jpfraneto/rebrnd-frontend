@@ -33,7 +33,10 @@ export const getMe = async (): Promise<
     method: "GET",
   });
 
-  console.log("📥 [getMe] /me endpoint response:", response);
+  console.log(
+    "📥 [getMe] /me endpoint response:",
+    JSON.stringify(response, null, 2)
+  );
 
   return response;
 };

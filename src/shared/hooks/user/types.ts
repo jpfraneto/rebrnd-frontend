@@ -32,6 +32,7 @@ export type User = {
   createdAt: string;
   updatedAt?: string;
   points: number;
+  leaderboardPosition?: number;
   hasVotedToday: boolean;
   todaysVote?: UserVote | null;
   isNewUser: boolean;

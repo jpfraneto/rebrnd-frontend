@@ -12,7 +12,7 @@ import Typography from "@/components/Typography";
 // Hooks
 import { useAuth } from "@/hooks/auth";
 import { useContractWagmi } from "@/shared/hooks/contract/useContractWagmi";
-import { useStoriesInMotion } from "@/shared/hooks/contract/useStoriesInMotion";
+import { usePowerLevel } from "@/shared/contexts/PowerLevelContext";
 import sdk from "@farcaster/miniapp-sdk";
 import { AuthContext } from "@/shared/providers/AppProvider";
 
@@ -36,8 +36,8 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   const { brndBalance, stakedBrndAmount, isLoadingBrndBalances } =
     useContractWagmi();
 
-  // Get BRND power level information
-  const { userInfo } = useStoriesInMotion();
+  // Get BRND power level information from shared context
+  const { getDisplayLevel } = usePowerLevel();
 
   // Helper function to format large numbers
   const formatBrndAmount = useCallback((amount: string): string => {
@@ -53,7 +53,7 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   }, []);
 
   // Get display values with loading states
-  const brndPowerLevel = userInfo?.brndPowerLevel || 0;
+  const brndPowerLevel = getDisplayLevel();
   const displayBalance = isLoadingBrndBalances ? (
     <>
       Balance: <span className={styles.loadingBlur}>0.0</span> $BRND

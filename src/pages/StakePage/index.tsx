@@ -119,11 +119,20 @@ export default function StakePage() {
 
   const handleWithdraw = () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
-    // Use real vault shares (not optimistic) for validation to prevent contract errors
-    if (parseFloat(withdrawAmount) > parseFloat(vaultShares)) {
+    
+    const withdrawAmountNum = parseFloat(withdrawAmount);
+    const availableBrndAmount = parseFloat(getDisplayStakedAmount());
+    
+    // Validate against BRND amount, not vault shares
+    if (withdrawAmountNum > availableBrndAmount) {
       return;
     }
-    withdrawBrnd({ shares: withdrawAmount });
+    
+    // Convert BRND amount to vault shares for the contract call
+    // Since we're using ERC4626 redeem, we need to calculate the equivalent shares
+    // For simplicity, we'll use a 1:1 approximation, but the hook will handle exact conversion
+    const approximateShares = withdrawAmount;
+    withdrawBrnd({ shares: approximateShares });
   };
 
   // Helper functions to get display balances (optimistic or real)
@@ -133,12 +142,32 @@ export default function StakePage() {
 
   const setMaxStake = () => {
     sdk.haptics.selectionChanged();
-    setStakeAmount(Math.floor(parseFloat(getDisplayBrndBalance())).toString());
+    const balance = getDisplayBrndBalance();
+    const balanceNum = parseFloat(balance);
+    
+    // Ensure we don't exceed the actual balance - round down aggressively
+    if (balanceNum > 0) {
+      // Round down to whole number to ensure we never exceed balance
+      const maxAmount = Math.floor(balanceNum);
+      setStakeAmount(maxAmount.toString());
+    } else {
+      setStakeAmount("0");
+    }
   };
 
   const setMaxWithdraw = () => {
     sdk.haptics.selectionChanged();
-    setWithdrawAmount(vaultShares);
+    const stakedBalance = getDisplayStakedAmount();
+    const stakedNum = parseFloat(stakedBalance);
+    
+    // Ensure we don't exceed the actual staked amount - round down aggressively
+    if (stakedNum > 0) {
+      // Round down to whole number to ensure we never exceed staked balance
+      const maxAmount = Math.floor(stakedNum);
+      setWithdrawAmount(maxAmount.toString());
+    } else {
+      setWithdrawAmount("0");
+    }
   };
 
   const formatNumber = (num: string) => {
@@ -366,7 +395,7 @@ export default function StakePage() {
               <div className={styles.formContainer}>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>
-                    Amount to Withdraw:
+                    BRND Amount to Withdraw:
                   </label>
                   <div className={styles.inputWrapper}>
                     <input
@@ -380,7 +409,7 @@ export default function StakePage() {
                       }
                       max={
                         activeTab === "withdraw"
-                          ? parseFloat(vaultShares)
+                          ? parseFloat(getDisplayStakedAmount())
                           : parseFloat(getDisplayBrndBalance())
                       }
                       min={0}
@@ -396,9 +425,9 @@ export default function StakePage() {
                     </button>
                   </div>
                   {withdrawAmount &&
-                    parseFloat(withdrawAmount) > parseFloat(vaultShares) && (
+                    parseFloat(withdrawAmount) > parseFloat(getDisplayStakedAmount()) && (
                       <p className={styles.errorText}>
-                        ⚠️ INSUFFICIENT VAULT SHARES
+                        ⚠️ INSUFFICIENT STAKED BALANCE
                       </p>
                     )}
                 </div>
@@ -418,7 +447,7 @@ export default function StakePage() {
                     isConfirming ||
                     !withdrawAmount ||
                     parseFloat(withdrawAmount) <= 0 ||
-                    parseFloat(withdrawAmount) > parseFloat(vaultShares) ||
+                    parseFloat(withdrawAmount) > parseFloat(getDisplayStakedAmount()) ||
                     isLoadingBrndBalances
                   }
                   loading={isConfirming}

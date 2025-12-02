@@ -185,7 +185,7 @@ function ClaimAirdrop({
     isConfirmed,
     transactionError: hookTransactionError,
   } = useAirdropClaim();
-  const { data: authData } = useAuth();
+  const { data: authData, updateAuthData } = useAuth();
   const { address } = useAccount();
   const [isLoadingAmount, setIsLoadingAmount] = React.useState(true);
   const [finalAirdropData, setFinalAirdropData] = React.useState(airdropData);
@@ -359,6 +359,19 @@ function ClaimAirdrop({
       sdk.haptics.notificationOccurred("error");
     }
   };
+
+  // Optimistically update the hasClaimed status when transaction is confirmed
+  useEffect(() => {
+    if (isConfirmed && authData?.airdrop) {
+      console.log("🔄 [ClaimAirdrop] Transaction confirmed, updating hasClaimed optimistically");
+      updateAuthData({
+        airdrop: {
+          ...authData.airdrop,
+          hasClaimed: true,
+        },
+      });
+    }
+  }, [isConfirmed, authData?.airdrop, updateAuthData]);
 
   // Trigger haptics when transitioning to success state
   useEffect(() => {

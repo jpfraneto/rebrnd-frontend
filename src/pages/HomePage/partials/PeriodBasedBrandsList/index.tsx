@@ -14,9 +14,9 @@ import { processBrandsWithSmartScoring } from "@/utils/smartPeriodScoring";
 import { useNavigate } from "react-router-dom";
 
 // Assets
-import BrandOfTheWeek from "@/assets/images/brand-of-the-week.svg?react";
-import BrandOfTheMonth from "@/assets/images/brand-of-the-month.svg?react";
-import AllTimeBrand from "@/assets/images/all-time-brand.svg?react";
+import BrandOfTheWeek from "@/assets/images/brand-of-the-week-white.svg?react";
+import BrandOfTheMonth from "@/assets/images/brand-of-the-month-white.svg?react";
+import AllTimeBrand from "@/assets/images/all-time-brand-white.svg?react";
 
 import { BrandTimePeriod } from "@/shared/components/TimePeriodFilter";
 import Typography from "@/shared/components/Typography";
@@ -115,43 +115,41 @@ function PeriodBasedBrandsList({
 
         <div className={styles.rightSection}>
           <ul className={styles.brandsList}>
-            {isLoading || !processedBrands || processedBrands.length === 0 ? (
-              // Show skeleton loading state
-              Array.from({ length: 3 }).map((_, index) => (
-                <li key={`skeleton-${index}`} className={styles.brandItem}>
-                  <div className={styles.brandInfo}>
-                    <div className={styles.skeletonImage} />
-                    <div className={styles.skeletonName} />
-                  </div>
-                </li>
-              ))
-            ) : (
-              // Show actual brand data
-              processedBrands.slice(0, 3).map((brand, index) => (
-                <li
-                  onClick={() => handleClickBrand(brand.id.toString())}
-                  key={`brand-item-${index}`}
-                  className={styles.brandItem}
-                >
-                  <div className={styles.brandInfo}>
-                    <img
-                      src={brand.imageUrl}
-                      alt={brand.name}
-                      className={styles.brandImage}
-                    />
-                    <Typography
-                      size={14}
-                      lineHeight={14}
-                      weight="medium"
-                      variant="geist"
-                      className={styles.brandName}
-                    >
-                      {truncateName(brand.name)}
-                    </Typography>
-                  </div>
-                </li>
-              ))
-            )}
+            {isLoading || !processedBrands || processedBrands.length === 0
+              ? // Show skeleton loading state
+                Array.from({ length: 3 }).map((_, index) => (
+                  <li key={`skeleton-${index}`} className={styles.brandItem}>
+                    <div className={styles.brandInfo}>
+                      <div className={styles.skeletonImage} />
+                      <div className={styles.skeletonName} />
+                    </div>
+                  </li>
+                ))
+              : // Show actual brand data
+                processedBrands.slice(0, 3).map((brand, index) => (
+                  <li
+                    onClick={() => handleClickBrand(brand.id.toString())}
+                    key={`brand-item-${index}`}
+                    className={styles.brandItem}
+                  >
+                    <div className={styles.brandInfo}>
+                      <img
+                        src={brand.imageUrl}
+                        alt={brand.name}
+                        className={styles.brandImage}
+                      />
+                      <Typography
+                        size={14}
+                        lineHeight={14}
+                        weight="medium"
+                        variant="geist"
+                        className={styles.brandName}
+                      >
+                        {truncateName(brand.name)}
+                      </Typography>
+                    </div>
+                  </li>
+                ))}
           </ul>
         </div>
       </div>

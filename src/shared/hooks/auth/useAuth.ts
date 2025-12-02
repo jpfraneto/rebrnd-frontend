@@ -22,8 +22,9 @@ import { AuthContext } from "@/shared/providers/AppProvider";
  * @returns Object containing user data, loading state, error information, and refetch function
  */
 export const useAuth = () => {
-  const { data, isLoading, error, refetch, isInitialized, updateAuthData } = useContext(AuthContext);
-  
+  const { data, isLoading, error, refetch, isInitialized, updateAuthData } =
+    useContext(AuthContext);
+
   return {
     data,
     isLoading,

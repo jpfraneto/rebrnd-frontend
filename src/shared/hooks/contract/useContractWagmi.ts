@@ -20,7 +20,7 @@ export interface StakeBrndParams {
 }
 
 export interface WithdrawBrndParams {
-  shares: string; // Amount of vault shares to redeem for assets
+  shares: string; // Amount in BRND equivalent (will be converted to vault shares)
 }
 
 export const useContractWagmi = (
@@ -40,6 +40,15 @@ export const useContractWagmi = (
       },
       onError: (error) => {
         console.error("❌ [TELLER WAGMI DEBUG] writeContract onError:", error);
+        console.error("❌ [TELLER WAGMI DEBUG] Full error details:", {
+          message: error?.message,
+          shortMessage: (error as any)?.shortMessage,
+          cause: (error as any)?.cause,
+          code: (error as any)?.code,
+          data: (error as any)?.data,
+          metaMessages: (error as any)?.metaMessages,
+          stack: error?.stack,
+        });
       },
     },
   });
@@ -112,6 +121,39 @@ export const useContractWagmi = (
     },
   });
 
+  // Function to convert BRND amount to vault shares
+  const convertBrndToShares = useCallback((brndAmount: string): bigint => {
+    try {
+      const decimals = 18;
+      const brndBigInt = parseUnits(brndAmount, decimals);
+      
+      // Calculate the ratio of requested BRND to total staked BRND
+      if (stakedBrndAmount && vaultShares) {
+        const totalStakedBigInt = stakedBrndAmount as bigint;
+        const totalSharesBigInt = vaultShares as bigint;
+        
+        // Calculate proportional shares: (requestedBRND * totalShares) / totalStaked
+        const requiredShares = (brndBigInt * totalSharesBigInt) / totalStakedBigInt;
+        
+        console.log("🔄 [TELLER CONVERSION DEBUG] BRND to Shares:", {
+          requestedBrnd: brndAmount,
+          brndBigInt: brndBigInt.toString(),
+          totalStaked: totalStakedBigInt.toString(),
+          totalShares: totalSharesBigInt.toString(),
+          requiredShares: requiredShares.toString(),
+        });
+        
+        return requiredShares;
+      }
+      
+      // Fallback to 1:1 conversion if no vault data
+      return brndBigInt;
+    } catch (error) {
+      console.error("Error converting BRND to shares:", error);
+      return parseUnits(brndAmount, 18); // Fallback to 1:1 conversion
+    }
+  }, [stakedBrndAmount, vaultShares]);
+
   // Current allowance
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract(
     {
@@ -127,6 +169,28 @@ export const useContractWagmi = (
     }
   );
 
+  // Vault status checks for debugging
+  const { data: vaultAsset } = useReadContract({
+    address: BRND_STAKING_CONFIG.TELLER_VAULT,
+    abi: ERC4626_ABI,
+    functionName: "asset",
+    query: {
+      enabled: !!userAddress,
+    },
+  });
+
+  // Log vault debugging info
+  useEffect(() => {
+    if (vaultAsset && userAddress) {
+      console.log("🏦 [TELLER VAULT DEBUG] Vault info:", {
+        vaultAddress: BRND_STAKING_CONFIG.TELLER_VAULT,
+        expectedAsset: BRND_STAKING_CONFIG.BRND_TOKEN,
+        actualAsset: vaultAsset,
+        assetsMatch: vaultAsset?.toLowerCase() === BRND_STAKING_CONFIG.BRND_TOKEN.toLowerCase(),
+      });
+    }
+  }, [vaultAsset, userAddress]);
+
   // Combined loading state
   const isPending = isWritePending;
 
@@ -134,6 +198,36 @@ export const useContractWagmi = (
   const parseContractError = (error: any): string => {
     const errorMessage =
       error?.message || error?.shortMessage || "Unknown error";
+
+    console.log("🔍 [TELLER ERROR DEBUG] Parsing error:", {
+      fullError: error,
+      message: error?.message,
+      shortMessage: error?.shortMessage,
+      cause: error?.cause,
+      data: error?.data,
+      code: error?.code,
+      metaMessages: error?.metaMessages,
+    });
+
+    // Check for specific Teller contract errors
+    if (errorMessage.includes("P")) {
+      return "Pool is paused. Please try again later.";
+    }
+    if (errorMessage.includes("MMCT")) {
+      return "Mismatched collateral token. Wrong token type.";
+    }
+    if (errorMessage.includes("LMP")) {
+      return "Liquidity limit exceeded. Pool doesn't have enough liquidity.";
+    }
+    if (errorMessage.includes("FD")) {
+      return "First deposit restriction. Only owner can make first deposit.";
+    }
+    if (errorMessage.includes("IS")) {
+      return "Insufficient shares. Pool activation requirements not met.";
+    }
+    if (errorMessage.includes("TB")) {
+      return "Token balance mismatch. Transfer verification failed.";
+    }
 
     // Generic wallet/transaction errors
     if (
@@ -147,6 +241,9 @@ export const useContractWagmi = (
     }
     if (errorMessage.includes("exceeds balance")) {
       return "Insufficient token balance for this transaction.";
+    }
+    if (errorMessage.includes("execution reverted")) {
+      return "Contract execution failed. The transaction was reverted by the smart contract. Check your inputs and try again.";
     }
 
     return `Transaction failed: ${errorMessage}`;
@@ -221,47 +318,48 @@ export const useContractWagmi = (
         return;
       }
 
+      // Check user balance with precision safety
+      const userBalance = brndBalance ? parseFloat(formatUnits(brndBalance as bigint, 18)) : 0;
+      const requestedAmount = parseFloat(params.amount);
+      
+      console.log("💰 [TELLER STAKING DEBUG] Balance check:", {
+        userBalance,
+        requestedAmount,
+        hasEnoughBalance: userBalance >= requestedAmount,
+        rawBalance: brndBalance?.toString(),
+      });
+      
+      // Add small buffer for precision issues (0.000001 BRND)
+      const balanceBuffer = 0.000001;
+      if (userBalance < requestedAmount || (requestedAmount > userBalance - balanceBuffer && requestedAmount !== userBalance)) {
+        console.log("❌ [TELLER STAKING DEBUG] Insufficient balance or precision issue");
+        setError(`Insufficient balance. You have ${userBalance.toFixed(6)} BRND but trying to stake ${requestedAmount} BRND`);
+        return;
+      }
+
       try {
         const decimals = 18; // BRND has 18 decimals
-        // Always approve a little more than needed: round up to nearest power of ten or next order of magnitude
-        let rawAmount = parseFloat(params.amount);
+        const rawAmount = parseFloat(params.amount);
         console.log("📊 [TELLER STAKING DEBUG] Raw amount:", rawAmount);
 
-        // Compute order of magnitude (e.g. 1,000,000 -> 1e6)
-        const magnitude = Math.pow(10, Math.floor(Math.log10(rawAmount)));
-        let approveAmount = Math.ceil(rawAmount / magnitude) * magnitude;
-        console.log(
-          "📊 [TELLER STAKING DEBUG] Magnitude:",
-          magnitude,
-          "Approve amount:",
-          approveAmount
-        );
-
-        // If original amount is already a round number, bump up to next magnitude
-        if (approveAmount === rawAmount) {
-          approveAmount += magnitude;
-          console.log(
-            "📊 [TELLER STAKING DEBUG] Bumped approve amount to:",
-            approveAmount
-          );
-        }
-
-        const amountBigInt = parseUnits(approveAmount.toString(), decimals);
+        // Use the exact amount for deposit - no rounding up needed
+        const amountBigInt = parseUnits(params.amount, decimals);
         console.log(
           "📊 [TELLER STAKING DEBUG] Amount in BigInt:",
           amountBigInt.toString()
         );
 
-        // Check allowance
+        // Check allowance - refresh first to get latest data
         console.log("🔍 [TELLER STAKING DEBUG] Checking current allowance...");
-        await refetchAllowance();
+        const { data: latestAllowance } = await refetchAllowance();
+        const allowance = latestAllowance || currentAllowance;
         console.log(
           "🔍 [TELLER STAKING DEBUG] Current allowance:",
-          currentAllowance?.toString()
+          allowance?.toString()
         );
 
-        if (!currentAllowance || (currentAllowance as bigint) < amountBigInt) {
-          // Need to approve first
+        if (!allowance || (allowance as bigint) < amountBigInt) {
+          // Need to approve first - approve exact amount needed
           console.log(
             "⏳ [TELLER STAKING DEBUG] Need approval - initiating approve transaction"
           );
@@ -343,18 +441,38 @@ export const useContractWagmi = (
 
       if (!params.shares || parseFloat(params.shares) <= 0) {
         console.log(
-          "❌ [TELLER WITHDRAW DEBUG] Invalid shares amount:",
+          "❌ [TELLER WITHDRAW DEBUG] Invalid BRND amount:",
           params.shares
         );
-        setError("Invalid shares amount");
+        setError("Invalid withdrawal amount");
+        return;
+      }
+
+      // Check if user has enough staked BRND with precision safety
+      const userStakedAmount = stakedBrndAmount ? parseFloat(formatUnits(stakedBrndAmount as bigint, 18)) : 0;
+      const requestedAmount = parseFloat(params.shares);
+      
+      console.log("💰 [TELLER WITHDRAW DEBUG] Balance check:", {
+        userStakedAmount,
+        requestedAmount,
+        hasEnoughStaked: userStakedAmount >= requestedAmount,
+        rawStakedAmount: stakedBrndAmount?.toString(),
+      });
+      
+      // Add small buffer for precision issues (0.000001 BRND)
+      const balanceBuffer = 0.000001;
+      if (userStakedAmount < requestedAmount || (requestedAmount > userStakedAmount - balanceBuffer && requestedAmount !== userStakedAmount)) {
+        console.log("❌ [TELLER WITHDRAW DEBUG] Insufficient staked balance or precision issue");
+        setError(`Insufficient staked balance. You have ${userStakedAmount.toFixed(6)} BRND staked but trying to withdraw ${requestedAmount} BRND`);
         return;
       }
 
       try {
-        const decimals = 18; // Vault shares have 18 decimals
-        const sharesBigInt = parseUnits(params.shares, decimals);
+        // Convert BRND amount to vault shares
+        const sharesBigInt = convertBrndToShares(params.shares);
+        
         console.log(
-          "📊 [TELLER WITHDRAW DEBUG] Shares in BigInt:",
+          "📊 [TELLER WITHDRAW DEBUG] Converted to shares:",
           sharesBigInt.toString()
         );
         console.log("📋 [TELLER WITHDRAW DEBUG] Redeem params:", {
@@ -392,7 +510,7 @@ export const useContractWagmi = (
         setLastOperation(null);
       }
     },
-    [userAddress, writeContract]
+    [userAddress, writeContract, stakedBrndAmount, convertBrndToShares]
   );
 
   // Handle approval confirmation - then trigger deposit
@@ -406,6 +524,7 @@ export const useContractWagmi = (
           needsDeposit,
           hasPendingAmount: !!pendingDepositAmount,
           hasUserAddress: !!userAddress,
+          lastOperation,
         }
       );
 
@@ -414,7 +533,8 @@ export const useContractWagmi = (
         !receipt ||
         !needsDeposit ||
         !pendingDepositAmount ||
-        !userAddress
+        !userAddress ||
+        lastOperation !== "approve"
       ) {
         console.log(
           "🚫 [TELLER APPROVAL DEBUG] Conditions not met - skipping deposit"

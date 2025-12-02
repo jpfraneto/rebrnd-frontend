@@ -1,5 +1,5 @@
 // Dependencies
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 // StyleSheet
@@ -94,6 +94,50 @@ function AirdropPage(): React.ReactNode {
 
   // Use isFetching for refetches, isLoading for initial load
   const isCheckingAirdrop = isLoading || isFetching;
+
+  // Countdown to midnight UTC (same as CongratsView)
+  const [countdown, setCountdown] = useState<string>("00:00:00");
+
+  // Calculate time until midnight UTC
+  const getTimeUntilMidnightUTC = useCallback(() => {
+    const now = new Date();
+
+    // Get current UTC time components
+    const utcYear = now.getUTCFullYear();
+    const utcMonth = now.getUTCMonth();
+    const utcDate = now.getUTCDate();
+
+    // Get midnight UTC (start of next day)
+    const midnightUTC = Date.UTC(utcYear, utcMonth, utcDate + 1, 0, 0, 0);
+
+    const diff = midnightUTC - now.getTime();
+
+    if (diff <= 0) {
+      return "00:00:00";
+    }
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0"
+    )}:${String(seconds).padStart(2, "0")}`;
+  }, []);
+
+  // Update countdown every second
+  useEffect(() => {
+    // Set initial countdown
+    setCountdown(getTimeUntilMidnightUTC());
+
+    // Update every second
+    const interval = setInterval(() => {
+      setCountdown(getTimeUntilMidnightUTC());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [getTimeUntilMidnightUTC]);
 
   const { data: leaderboardData, isLoading: leaderboardLoading } =
     useAirdropLeaderboard(100);
@@ -329,7 +373,48 @@ function AirdropPage(): React.ReactNode {
               textAlign="center"
               className={styles.notEligibleText}
             >
+              (Your rank is {authData?.leaderboardPosition})
+            </Typography>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              textAlign="center"
+              className={styles.notEligibleText}
+            >
               You are not eligible for the BRND airdrop.
+            </Typography>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              textAlign="center"
+              className={styles.notEligibleText}
+            >
+              This updates in: {countdown}
+            </Typography>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              textAlign="center"
+              className={styles.notEligibleText}
+            >
+              And the airdrop week starts in 7 days.
+            </Typography>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              textAlign="center"
+              className={styles.notEligibleText}
+            >
+              You can still get in! Start voting and sharing podiums now to add
+              points.
             </Typography>
           </div>
         </div>
@@ -486,17 +571,16 @@ function AirdropPage(): React.ReactNode {
       {/* Main View - Multipliers Section */}
       {currentView === "main" && currentData && (
         <div className={styles.multipliersSection}>
-          <button
-            type="button"
-            className={styles.multipliersTextButton}
-            onClick={handleCheckAirdrop}
-            disabled={isCheckingAirdrop}
-          >
-            Update Multipliers
-            {isCheckingAirdrop && (
-              <span className={styles.loadingSpinner} aria-hidden />
-            )}
-          </button>
+          <div className={styles.multipliersTextButton}>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={12}
+              lineHeight={16}
+            >
+              Updates in: {countdown}
+            </Typography>
+          </div>
           <span onClick={handleMultipliersClick}>
             {" "}
             <Typography

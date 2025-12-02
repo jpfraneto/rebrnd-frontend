@@ -77,7 +77,7 @@ export default function CongratsView({
   // Level 0 -> 3, Level 1 -> 6, Level 2 -> 9, etc.
   // Formula: (level + 1) * 3
   const calculateLeaderboardPoints = useCallback((level: number): number => {
-    return (level + 1) * 3;
+    return 3 + (level + 1) * 3;
   }, []);
 
   const rewardAmount = calculateRewardAmount(brndPowerLevel);

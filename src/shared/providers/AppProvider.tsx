@@ -11,6 +11,7 @@ import {
 // Providers
 import { BottomSheetProvider } from "./BottomSheetProvider";
 import { ModalProvider } from "./ModalProvider";
+import { PowerLevelProvider } from "../contexts/PowerLevelContext";
 
 // Components
 import NotificationPrompt from "@/shared/components/NotificationPrompt";
@@ -111,6 +112,9 @@ export function AppProvider(): JSX.Element {
         todaysVote: updates.todaysVote !== undefined
           ? updates.todaysVote
           : prev.todaysVote,
+        airdrop: updates.airdrop
+          ? { ...prev.airdrop, ...updates.airdrop }
+          : prev.airdrop,
       };
       
       console.log("🔄 [AuthContext] Optimistically updated auth data:", updates);
@@ -295,35 +299,37 @@ export function AppProvider(): JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthContext.Provider value={contextValue}>
-        <BottomSheetProvider>
-          <ModalProvider>
-            {/* Add miniapp prompt overlay - shown on app load if needed */}
-            {showAddMiniappPrompt && userFid && (
-              <div
-                style={{
-                  position: "fixed",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  zIndex: 9999,
-                  backgroundColor: "rgba(0, 0, 0, 0.5)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "16px",
-                }}
-              >
-                <NotificationPrompt
-                  userFid={userFid}
-                  onComplete={handleAddMiniappComplete}
-                  points={0} // No points context on app load
-                />
-              </div>
-            )}
-            <Outlet />
-          </ModalProvider>
-        </BottomSheetProvider>
+        <PowerLevelProvider>
+          <BottomSheetProvider>
+            <ModalProvider>
+              {/* Add miniapp prompt overlay - shown on app load if needed */}
+              {showAddMiniappPrompt && userFid && (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 9999,
+                    backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "16px",
+                  }}
+                >
+                  <NotificationPrompt
+                    userFid={userFid}
+                    onComplete={handleAddMiniappComplete}
+                    points={0} // No points context on app load
+                  />
+                </div>
+              )}
+              <Outlet />
+            </ModalProvider>
+          </BottomSheetProvider>
+        </PowerLevelProvider>
       </AuthContext.Provider>
     </QueryClientProvider>
   );

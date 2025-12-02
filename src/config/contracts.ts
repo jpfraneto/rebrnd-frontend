@@ -7,13 +7,13 @@ export const BRND_STAKING_CONFIG = {
 } as const;
 
 export const BRND_SEASON_1_CONFIG = {
-  CONTRACT: "0x1b82d1ff6a082195717a739af66a48b228a2df06" as `0x${string}`,
+  CONTRACT: "0xE3bEcE1bF336a42ef046d1eAAC9A2D89aBcc948f" as `0x${string}`,
   BRND_TOKEN: "0x41Ed0311640A5e489A90940b1c33433501a21B07" as `0x${string}`,
   CHAIN_ID: 8453, // Base mainnet
 } as const;
 
 export const AIRDROP_CONTRACT_CONFIG = {
-  CONTRACT: "0xf5ea5a8aa8722aa72cbb86d4cd9adece26a5cd6d" as `0x${string}`,
+  CONTRACT: "0xCeB46c1d5165112ca3ECF4F391F5fdF86E7a314B" as `0x${string}`,
   BRND_TOKEN: "0x41Ed0311640A5e489A90940b1c33433501a21B07" as `0x${string}`,
   CHAIN_ID: 8453, // Base mainnet
 } as const;
@@ -51,6 +51,13 @@ export const ERC20_ABI = [
 
 // ERC4626 ABI - for Teller Vault interactions
 export const ERC4626_ABI = [
+  {
+    type: "function",
+    name: "asset",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "address" }],
+  },
   {
     type: "function",
     name: "deposit",
