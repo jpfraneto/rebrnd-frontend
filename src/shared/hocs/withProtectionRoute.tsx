@@ -19,7 +19,7 @@ const withProtectionRoute = (
       refetch();
     }, []);
 
-    if (isLoading || isPending) {
+    if (isLoading || isPending || (!data && permission === "only-connected")) {
       return <LoaderIndicator variant={"fullscreen"} />;
     } else {
       if (!data && permission === "only-connected") {

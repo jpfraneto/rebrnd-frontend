@@ -13,7 +13,6 @@ import Button from "@/components/Button";
 import LoaderIndicator from "@/components/LoaderIndicator";
 import GridItem from "./partials/GridItem";
 import IconButton from "@/components/IconButton";
-import CastItem from "./partials/CastItem";
 
 // Assets
 import GoBackIcon from "@/assets/icons/go-back-icon.svg?react";
@@ -292,7 +291,7 @@ function BrandPage() {
                   </div>
                 </GridItem>
 
-                {/* Latest casts */}
+                {/* Latest casts
                 <GridItem
                   title={"Latest casts"}
                   className={classNames(styles.box, styles.casts)}
@@ -313,7 +312,7 @@ function BrandPage() {
                       }}
                     />
                   ))}
-                </GridItem>
+                </GridItem> */}
               </div>
               {isFooterVisible && <div className={styles.divider} />}
             </div>

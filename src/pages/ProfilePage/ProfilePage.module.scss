@@ -6,10 +6,22 @@
   flex: 1;
   @include baseLayout();
   height: 100%;
+  min-height: 0;
   gap: 8px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 8px 20px 8px; // Add bottom padding to ensure content is visible
+}
+
+.body > * {
+  flex-shrink: 0;
+}
+
+.body > :last-child {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {

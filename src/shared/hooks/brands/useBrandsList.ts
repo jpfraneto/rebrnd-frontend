@@ -25,7 +25,8 @@ export const useBrandList = (
     queryFn: () =>
       getBrandList(searchQuery, String(pageId), String(limit), order, period), // NEW: Pass period
     retry: false,
-    staleTime: 900000,
+    staleTime: Infinity, // Never consider data stale - cache indefinitely
+    gcTime: Infinity, // Keep cached data indefinitely (formerly cacheTime)
     enabled: false,
     placeholderData: (prev) => prev,
   });

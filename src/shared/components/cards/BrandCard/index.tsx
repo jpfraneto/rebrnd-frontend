@@ -25,9 +25,13 @@ interface BrandCardProps {
   readonly variation: BrandStateScoreType;
   readonly className?: string;
   readonly disabled?: boolean;
+  readonly podiumPosition?: number | null;
+  readonly context?: "podium" | "leaderboard" | "ranking" | null;
 }
 
 export default function BrandCard({
+  podiumPosition = null,
+  context = null,
   name,
   photoUrl,
   score,
@@ -144,15 +148,33 @@ export default function BrandCard({
           />
 
           <div className={styles.score}>
-            <Typography
-              weight={"regular"}
-              variant={"geist"}
-              size={sizes[size].score.size}
-              lineHeight={sizes[size].score.lineHeight}
-              textAlign={"center"}
-            >
-              {shortenNumber(score)}
-            </Typography>
+            {context === "podium" ? (
+              <Typography
+                weight={"regular"}
+                variant={"geist"}
+                size={33}
+                lineHeight={33}
+                textAlign={"center"}
+              >
+                {podiumPosition === 1
+                  ? "🥇"
+                  : podiumPosition === 2
+                  ? "🥈"
+                  : podiumPosition === 3
+                  ? "🥉"
+                  : podiumPosition}
+              </Typography>
+            ) : (
+              <Typography
+                weight={"regular"}
+                variant={"geist"}
+                size={sizes[size].score.size}
+                lineHeight={sizes[size].score.lineHeight}
+                textAlign={"center"}
+              >
+                {shortenNumber(score)}
+              </Typography>
+            )}
           </div>
         </div>
         <Typography

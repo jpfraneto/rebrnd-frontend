@@ -35,7 +35,7 @@ function LeaderboardFeed() {
     if (data?.currentUser) {
       try {
         await sdk.actions.composeCast({
-          text: `I'm #${data.currentUser.position} on the BRND leaderboard with ${data.currentUser.points} points! 🏆`,
+          text: `I'm #${data.currentUser.position} on the $BRND leaderboard with ${data.currentUser.points} points! `,
           embeds: ["https://brnd.land"],
         });
 

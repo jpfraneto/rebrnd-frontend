@@ -87,7 +87,11 @@ export async function request<T>(
     const text = await response.text();
     const data: T = parseJSONWithBigInt(text);
 
-    console.log("🔍 [Request] Parsed response with BigInt preservation");
+    console.log(
+      "🔍 [Request] Parsed response with BigInt preservation",
+      fullUrl.toString(),
+      data
+    );
 
     return data;
   } catch (error) {

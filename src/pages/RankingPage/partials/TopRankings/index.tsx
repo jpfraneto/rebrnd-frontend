@@ -1,0 +1,140 @@
+// Dependencies
+import { useCallback, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+
+// Components
+import BrandCard from "@/components/cards/BrandCard";
+import { BrandListItem } from "@/components/BrandListItem";
+
+// StyleSheet
+import styles from "./TopRankings.module.scss";
+
+// Hook
+import { Brand, useBrandList } from "@/hooks/brands";
+import useDisableScrollBody from "@/hooks/ui/useDisableScrollBody";
+
+// Utils
+import { getBrandScoreVariation } from "@/utils/brand";
+import {
+  calculateSmartPeriodScores,
+  processBrandsWithSmartScoring,
+} from "@/utils/smartPeriodScoring";
+
+// Assets
+import BrandOfTheWeek from "@/assets/images/brand-of-the-week.svg?react";
+import BrandOfTheMonth from "@/assets/images/brand-of-the-month.svg?react";
+import AllTimeBrand from "@/assets/images/all-time-brand.svg?react";
+
+import { BrandTimePeriod } from "@/shared/components/TimePeriodFilter";
+
+interface TopRankingsProps {
+  period: BrandTimePeriod;
+}
+
+function TopRankings({ period }: TopRankingsProps) {
+  const navigate = useNavigate();
+  const { data, refetch } = useBrandList("top", "", 1, 50, period);
+  useDisableScrollBody();
+
+  useEffect(() => {
+    refetch();
+  }, [period]);
+
+  // Process brands with smart scoring
+  const processedBrands = useMemo(() => {
+    if (!data?.brands) return [];
+    return processBrandsWithSmartScoring(data.brands, period);
+  }, [data?.brands, period]);
+
+  const getScoreForPeriod = useCallback(
+    (brand: Brand): number => {
+      const smartScores = calculateSmartPeriodScores(brand, period);
+      return smartScores.score;
+    },
+    [period]
+  );
+
+  const getStateScoreForPeriod = useCallback(
+    (brand: Brand): number => {
+      const smartScores = calculateSmartPeriodScores(brand, period);
+      return smartScores.stateScore;
+    },
+    [period]
+  );
+
+  const getBannerSvg = useCallback((period: BrandTimePeriod) => {
+    switch (period) {
+      case "week":
+        return <BrandOfTheWeek />;
+      case "month":
+        return <BrandOfTheMonth />;
+      case "all":
+        return <AllTimeBrand />;
+      default:
+        return null;
+    }
+  }, []);
+
+  /**
+   * Get the main brand from processed brands
+   */
+  const mainBrand = useMemo<Brand | undefined>(
+    () => processedBrands?.[0],
+    [processedBrands]
+  );
+
+  /**
+   * Handles the click event on a brand card and navigates to the brand's page.
+   */
+  const handleClickCard = useCallback((id: Brand["id"]) => {
+    navigate(`/brand/${id}`);
+  }, []);
+
+  return (
+    <div className={styles.layout}>
+      {mainBrand && (
+        <div className={styles.inner}>
+          <div className={styles.feature}>
+            <div className={styles.image}>{getBannerSvg(period)}</div>
+            <div className={styles.brand}>
+              <BrandCard
+                size={"l"}
+                selected={true}
+                orientation={"center"}
+                className={styles.brandCard}
+                name={mainBrand.name}
+                photoUrl={mainBrand.imageUrl}
+                score={getScoreForPeriod(mainBrand)}
+                onClick={() => handleClickCard(mainBrand.id)}
+                variation={getBrandScoreVariation(
+                  getStateScoreForPeriod(mainBrand)
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {processedBrands && processedBrands.length > 1 && (
+        <ul className={styles.grid}>
+          {processedBrands.map((brand, index) => (
+            <li key={`--brand-item-${index.toString()}`}>
+              <BrandListItem
+                position={index + 1}
+                name={brand.name}
+                photoUrl={brand.imageUrl}
+                score={getScoreForPeriod(brand)}
+                variation={getBrandScoreVariation(
+                  getStateScoreForPeriod(brand)
+                )}
+                onClick={() => handleClickCard(brand.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export default TopRankings;

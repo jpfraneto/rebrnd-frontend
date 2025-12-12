@@ -1,19 +1,19 @@
 // src/shared/config/contracts.ts
-import BRND_SEASON_1_CONFIG_ABI from "./abis/BRND_SEASON_1.json";
+import BRND_SEASON_2_CONFIG_ABI from "./abis/BRND_SEASON_2.json";
 
 export const BRND_STAKING_CONFIG = {
   BRND_TOKEN: "0x41Ed0311640A5e489A90940b1c33433501a21B07" as `0x${string}`,
   TELLER_VAULT: "0x19d1872d8328b23a219e11d3d6eeee1954a88f88" as `0x${string}`,
 } as const;
 
-export const BRND_SEASON_1_CONFIG = {
-  CONTRACT: "0xE3bEcE1bF336a42ef046d1eAAC9A2D89aBcc948f" as `0x${string}`,
+export const BRND_SEASON_2_CONFIG = {
+  CONTRACT: "0x89ef03e9bbb67dedf64d734bdb78446b17d49dab" as `0x${string}`,
   BRND_TOKEN: "0x41Ed0311640A5e489A90940b1c33433501a21B07" as `0x${string}`,
   CHAIN_ID: 8453, // Base mainnet
 } as const;
 
 export const AIRDROP_CONTRACT_CONFIG = {
-  CONTRACT: "0xCeB46c1d5165112ca3ECF4F391F5fdF86E7a314B" as `0x${string}`,
+  CONTRACT: "0x51d35156dc4067347174646e3ee76b568b102c29" as `0x${string}`,
   BRND_TOKEN: "0x41Ed0311640A5e489A90940b1c33433501a21B07" as `0x${string}`,
   CHAIN_ID: 8453, // Base mainnet
 } as const;
@@ -100,9 +100,31 @@ export const ERC4626_ABI = [
     inputs: [{ type: "address" }],
     outputs: [{ type: "uint256" }],
   },
+  // Withdrawal delay functions for Teller Pool
+  {
+    type: "function",
+    name: "withdrawDelayTimeSeconds",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "getSharesLastTransferredAt",
+    stateMutability: "view",
+    inputs: [{ type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "maxRedeem",
+    stateMutability: "view",
+    inputs: [{ type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
 ] as const;
 
-// Airdrop contract ABI - Based on backend integration guide
+// Airdrop contract ABI - BRND_AIRDROP_1 with new functions
 export const AIRDROP_ABI = [
   {
     inputs: [
@@ -315,9 +337,81 @@ export const AIRDROP_ABI = [
         name: "totalClaimedAmountWei",
         type: "uint256",
       },
+      { internalType: "uint256", name: "totalClaimedUsers", type: "uint256" },
       { internalType: "uint256", name: "escrowBalance", type: "uint256" },
       { internalType: "uint256", name: "allowance", type: "uint256" },
+      { internalType: "uint256", name: "startTime", type: "uint256" },
+      { internalType: "uint256", name: "endTime", type: "uint256" },
+      { internalType: "bool", name: "isActive", type: "bool" },
     ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getClaimStats",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "totalClaimedWei",
+        type: "uint256",
+      },
+      { internalType: "uint256", name: "totalClaimers", type: "uint256" },
+      {
+        internalType: "uint256",
+        name: "totalClaimedTokens",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getAirdropTiming",
+    outputs: [
+      { internalType: "bool", name: "hasStarted", type: "bool" },
+      { internalType: "uint256", name: "startTime", type: "uint256" },
+      { internalType: "uint256", name: "endTime", type: "uint256" },
+      { internalType: "uint256", name: "timeRemaining", type: "uint256" },
+      { internalType: "bool", name: "isActive", type: "bool" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "fid", type: "uint256" },
+      { internalType: "uint256", name: "baseAmount", type: "uint256" },
+      { internalType: "bytes32[]", name: "proof", type: "bytes32[]" },
+    ],
+    name: "checkEligibility",
+    outputs: [
+      { internalType: "bool", name: "isEligible", type: "bool" },
+      { internalType: "bool", name: "hasClaimed", type: "bool" },
+      { internalType: "bool", name: "canClaim", type: "bool" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "totalClaimers",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "airdropStartTime",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "CLAIM_WINDOW_DURATION",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
@@ -379,7 +473,7 @@ export const AIRDROP_ABI = [
   },
   {
     inputs: [{ internalType: "bytes32", name: "newRoot", type: "bytes32" }],
-    name: "updateMerkleRoot",
+    name: "setMerkleRoot",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -387,4 +481,4 @@ export const AIRDROP_ABI = [
 ] as const;
 
 // StoriesInMotion contract ABI
-export { BRND_SEASON_1_CONFIG_ABI };
+export { BRND_SEASON_2_CONFIG_ABI };

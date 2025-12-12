@@ -192,6 +192,10 @@ export default function BrandsList({
       </div>
     );
 
+  // Show loader during initial load or when fetching with no existing data
+  const shouldShowLoader =
+    isLoading || (isFetching && data.brands.length === 0);
+
   return (
     <div className={styles.layout}>
       {isFinderEnabled && (
@@ -199,7 +203,7 @@ export default function BrandsList({
           <SearchInput onChangeText={setSearchQuery} />
         </div>
       )}
-      {isLoading ? (
+      {shouldShowLoader ? (
         <div className={styles.loader}>
           <LoaderIndicator size={32} />
         </div>

@@ -649,6 +649,30 @@
 }
 
 // ============================================
+// WITHDRAWAL DELAY WARNING
+// ============================================
+.withdrawalDelayWarning {
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid rgba(255, 165, 0, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.delayText {
+  color: #ffcc99;
+  font-weight: 600;
+}
+
+.delaySubtext {
+  color: #cccccc;
+  opacity: 0.8;
+}
+
+// ============================================
 // STATUS MESSAGES
 // ============================================
 .errorText {

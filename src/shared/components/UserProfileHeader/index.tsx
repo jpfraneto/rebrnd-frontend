@@ -82,7 +82,7 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   const handleSwap = useCallback(() => {
     sdk.haptics.selectionChanged();
     sdk.actions.swapToken({
-      sellToken: "eip155:8453/erc20:0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      sellToken: "eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       /**
        * CAIP-19 token ID. For example, OP ETH:
        * eip155:10/native
@@ -92,7 +92,7 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
        * Sell token amount, as numeric string.
        * For example, 1 USDC: 1000000
        */
-      sellAmount: "10000000",
+      sellAmount: "8",
     });
   }, []);
 

@@ -10,14 +10,10 @@ import Typography from "@/components/Typography";
 
 // Hooks
 import { useUserProfile } from "@/shared/hooks/user";
-import { useContextualTransaction } from "@/shared/hooks/user/useContextualTransaction";
 import LoaderIndicator from "@/shared/components/LoaderIndicator";
-import TransactionInfo from "@/shared/components/TransactionInfo";
 
 const UserProfile: React.FC = () => {
   const { data: profileData, isLoading, error } = useUserProfile();
-  const { transaction, hasTransaction } = useContextualTransaction();
-  console.log("THE PROFILE DATA IS", profileData);
 
   if (isLoading) {
     return (
@@ -120,14 +116,6 @@ const UserProfile: React.FC = () => {
           subtext="SCORE"
         />
       </div>
-      
-      {/* Contextual Transaction Information */}
-      {hasTransaction && transaction && (
-        <TransactionInfo 
-          transaction={transaction}
-          className={styles.transactionInfo}
-        />
-      )}
     </div>
   );
 };

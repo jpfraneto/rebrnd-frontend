@@ -1,33 +1,33 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjE2MDk4LCJ0eXBlIjoiYXV0aCIsImtleSI6IjB4RjJGRTRERDlhODZlQ0FmZTIyNDI0QkZiNjA4NTAzNkJjYTc4MzVBOCJ9",
+    "header": "eyJmaWQiOjE2MDk4LCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4YUIyMERlOGY1QTRmOGUxNDdCYWFDOUQxZjZlMjM2ODYxNDg1NTE2QSJ9",
     "payload": "eyJkb21haW4iOiJyZWJybmQubGF0In0",
-    "signature": "eoBmczudTRqGDdFouVhTMUYVavt9ouB1l3xak2emuR8w0sqQPWgktMxc6/s63T8xix3f6iPx2MsOtA4eBKCuHRs="
+    "signature": "nJFrQykoCm+jTnTPbhw5rih3e2W1KAs0vFIkYgDNWP9/QfTqHQs1YV+71VatPjIBphRDWVfK8F2WgegJU3zuBhw="
   },
   "frame": {
     "version": "1",
-    "name": "REBRND",
-    "iconUrl": "https://github.com/jpfraneto/images/blob/main/LOGO%20BRND%20SQUARE.png?raw=true",
-    "homeUrl": "https://brnd.land",
-    "imageUrl": "https://github.com/jpfraneto/images/blob/main/rebrnd.png?raw=true",
+    "name": "BRND",
+    "iconUrl": "https://rebrnd.lat/icon.jpg",
+    "homeUrl": "https://rebrnd.lat",
+    "imageUrl": "https://rebrnd.lat/image.png",
     "buttonTitle": "REBRND",
-    "splashImageUrl": "https://github.com/jpfraneto/images/blob/main/BRND-FRAME-SPLASH.png?raw=true",
+    "splashImageUrl": "https://rebrnd.lat/splash.png",
     "splashBackgroundColor": "#000000",
     "webhookUrl": "https://api.neynar.com/f/app/35999599-3dc3-42c6-b142-5e8e14a1cc10/event",
-    "subtitle": "Showcase your onchain brands",
-    "description": "Community hub to rank on‑chain brands: create podiums, share, earn BRND tokens.",
+    "subtitle": "The onchain brands stage",
+    "description": "Discover, rank, and share top onchain brands. Earn BRND tokens.",
     "screenshotUrls": [
-      "https://github.com/jpfraneto/images/blob/main/BRND%20-%20Screenshot%201.png?raw=true",
-      "https://github.com/jpfraneto/images/blob/main/BRND%20-%20Screenshot%202.png?raw=true",
-      "https://github.com/jpfraneto/images/blob/main/BRND%20-%20Screenshot%203.png?raw=true"
+      "https://rebrnd.lat/screenshot-1.jpg",
+      "https://rebrnd.lat/screenshot-2.jpg",
+      "https://rebrnd.lat/screenshot-3.jpg"
     ],
     "primaryCategory": "social",
     "tags": ["brands", "leaderboard", "ranking"],
-    "heroImageUrl": "https://github.com/jpfraneto/images/blob/main/BRND-HERO.png?raw=true",
-    "tagline": "Showcase your onchain brands",
-    "ogTitle": "REBRND",
-    "ogDescription": "Community hub to rank on‑chain brands: create podiums, share, earn BRND tokens.",
-    "ogImageUrl": "https://github.com/jpfraneto/images/blob/main/rebrnd.png?raw=true"
+    "heroImageUrl": "https://rebrnd.lat/hero.jpg",
+    "tagline": "The onchain brands stage",
+    "ogTitle": "BRND",
+    "ogDescription": "Discover, rank, and share top onchain brands. Earn BRND tokens.",
+    "ogImageUrl": "https://rebrnd.lat/image.png"
   },
   "noindex": true,
   "baseBuilder": {

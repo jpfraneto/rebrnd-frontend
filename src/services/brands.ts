@@ -15,25 +15,37 @@ import { Brand, BrandCast } from "../shared/hooks/brands";
  * Interface for public podium data
  */
 export interface PublicPodium {
-  id: string;
-  date: string;
-  createdAt: string;
+  transactionHash: string;
+  id: string | null;
   user: {
     fid: number;
     username: string;
-    photoUrl: string;
+    photoUrl: string | null;
   };
-  brands: Array<{
-    id: number;
-    name: string;
-    imageUrl: string;
-    score: number;
-    ranking: number;
-  }>;
-  pointsAwarded: number;
+  brand1: Brand;
+  brand2: Brand;
+  brand3: Brand;
+  date: string;
+  day: number | null;
+  shared: boolean;
+  shareVerified: boolean;
+  shareVerifiedAt: string | null;
+  castHash: string | null;
+  brndPaidWhenCreatingPodium: number | null;
+  rewardAmount: string | null;
+  claimedAt: string | null;
+  claimTxHash: string | null;
+  signatureGeneratedAt: string | null;
+  nonce: number | null;
 }
 
 export type BrandTimePeriod = "week" | "month" | "all";
+
+/**
+ * Cache for brand list requests
+ * Key format: `${searchQuery}|${pageId}|${limit}|${order}|${period}`
+ */
+const brandListCache = new Map<string, GetBrandListResponse>();
 
 /**
  * Response structure for recent podiums API
@@ -61,7 +73,7 @@ export const getRecentPodiums = async (
   page: number = 1,
   limit: number = 20
 ): Promise<RecentPodiumsResponse> => {
-  return await request<RecentPodiumsResponse>(
+  const response = await request<RecentPodiumsResponse>(
     `${BRAND_SERVICE}/recent-podiums`,
     {
       method: "GET",
@@ -71,6 +83,8 @@ export const getRecentPodiums = async (
       },
     }
   );
+  console.log("THE RESPONSE HERE IS", response);
+  return response;
 };
 
 /**
@@ -92,6 +106,7 @@ export type BrandResponse = {
 
 /**
  * Retrieves the list of brands from the brand service.
+ * Results are cached to prevent unnecessary API calls.
  *
  * @param {string} searchQuery - The search query to filter the brands.
  * @param {string} pageId - The ID of the page to retrieve.
@@ -106,8 +121,17 @@ export const getBrandList = async (
   limit: string = "27",
   order: "top" | "new" | "all" = "all",
   period: BrandTimePeriod = "all" // NEW: Added period parameter
-): Promise<GetBrandListResponse> =>
-  await request<GetBrandListResponse>(`${BRAND_SERVICE}/list`, {
+): Promise<GetBrandListResponse> => {
+  // Create cache key from all parameters
+  const cacheKey = `${searchQuery}|${pageId}|${limit}|${order}|${period}`;
+
+  // Return cached result if available
+  if (brandListCache.has(cacheKey)) {
+    return brandListCache.get(cacheKey)!;
+  }
+
+  // Fetch from API
+  const result = await request<GetBrandListResponse>(`${BRAND_SERVICE}/list`, {
     method: "GET",
     params: {
       search: searchQuery,
@@ -117,6 +141,12 @@ export const getBrandList = async (
       period,
     },
   });
+
+  // Cache the result
+  brandListCache.set(cacheKey, result);
+
+  return result;
+};
 
 /* =======================================
    = = = = = = = = = = = = = = = = = = = =

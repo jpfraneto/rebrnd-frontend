@@ -1,5 +1,5 @@
 // src/shared/hooks/contract/useStoriesInMotion.ts
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   useAccount,
   useWriteContract,
@@ -12,8 +12,8 @@ import { config } from "@/shared/config/wagmi";
 import { parseUnits, formatUnits } from "viem";
 
 import {
-  BRND_SEASON_1_CONFIG,
-  BRND_SEASON_1_CONFIG_ABI,
+  BRND_SEASON_2_CONFIG,
+  BRND_SEASON_2_CONFIG_ABI,
   ERC20_ABI,
 } from "@/config/contracts";
 import { request } from "@/services/api";
@@ -112,7 +112,7 @@ export const useStoriesInMotion = (
   const userFid = authData?.fid ? Number(authData.fid) : null;
 
   // Check if user is on correct network
-  const isCorrectNetwork = chainId === BRND_SEASON_1_CONFIG.CHAIN_ID;
+  const isCorrectNetwork = chainId === BRND_SEASON_2_CONFIG.CHAIN_ID;
 
   // Get user info from contract (V5 uses getUserInfoByWallet for backwards compatibility)
   const {
@@ -120,8 +120,8 @@ export const useStoriesInMotion = (
     isLoading: isLoadingUserInfo,
     refetch: refetchUserInfo,
   } = useReadContract({
-    address: BRND_SEASON_1_CONFIG.CONTRACT,
-    abi: BRND_SEASON_1_CONFIG_ABI,
+    address: BRND_SEASON_2_CONFIG.CONTRACT,
+    abi: BRND_SEASON_2_CONFIG_ABI,
     functionName: "getUserInfoByWallet",
     args: userAddress ? [userAddress] : undefined,
     query: {
@@ -135,22 +135,49 @@ export const useStoriesInMotion = (
     isLoading: isLoadingBrndBalance,
     refetch: refetchBrndBalance,
   } = useReadContract({
-    address: BRND_SEASON_1_CONFIG.BRND_TOKEN,
+    address: BRND_SEASON_2_CONFIG.BRND_TOKEN,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: userAddress ? [userAddress] : undefined,
     query: {
-      enabled: !!userAddress,
+      enabled: !!userAddress && isCorrectNetwork,
+      // Refetch when address or network changes
+      refetchOnMount: true,
+      refetchOnWindowFocus: false, // Minimize RPC calls
     },
   });
 
+  // Track previous address to only refetch when it actually changes
+  const prevAddressRef = useRef<string | undefined>(undefined);
+
+  // Explicitly refetch balance when wallet address actually changes (not on every render)
+  useEffect(() => {
+    // Only refetch if:
+    // 1. We have an address
+    // 2. We're on the correct network
+    // 3. The address actually changed (not just a re-render)
+    if (
+      userAddress &&
+      isCorrectNetwork &&
+      isConnected &&
+      userAddress !== prevAddressRef.current
+    ) {
+      prevAddressRef.current = userAddress;
+      // Refetch balance when address changes
+      refetchBrndBalance();
+    } else if (!userAddress) {
+      // Reset ref when disconnected
+      prevAddressRef.current = undefined;
+    }
+  }, [userAddress, isConnected, isCorrectNetwork, refetchBrndBalance]);
+
   // Get BRND allowance for contract
   const { data: brndAllowance, refetch: refetchAllowance } = useReadContract({
-    address: BRND_SEASON_1_CONFIG.BRND_TOKEN,
+    address: BRND_SEASON_2_CONFIG.BRND_TOKEN,
     abi: ERC20_ABI,
     functionName: "allowance",
     args: userAddress
-      ? [userAddress, BRND_SEASON_1_CONFIG.CONTRACT]
+      ? [userAddress, BRND_SEASON_2_CONFIG.CONTRACT]
       : undefined,
     query: {
       enabled: !!userAddress,
@@ -159,8 +186,8 @@ export const useStoriesInMotion = (
 
   // Check if voted today (V5 uses FID instead of wallet address)
   const { data: hasVotedToday, refetch: refetchVotedToday } = useReadContract({
-    address: BRND_SEASON_1_CONFIG.CONTRACT,
-    abi: BRND_SEASON_1_CONFIG_ABI,
+    address: BRND_SEASON_2_CONFIG.CONTRACT,
+    abi: BRND_SEASON_2_CONFIG_ABI,
     functionName: "hasVotedToday",
     args: userFid ? [userFid, Math.floor(Date.now() / 86400000)] : undefined,
     query: {
@@ -181,8 +208,8 @@ export const useStoriesInMotion = (
 
   // Check if wallet is authorized (has FID linked)
   const { data: authorizedFid } = useReadContract({
-    address: BRND_SEASON_1_CONFIG.CONTRACT,
-    abi: BRND_SEASON_1_CONFIG_ABI,
+    address: BRND_SEASON_2_CONFIG.CONTRACT,
+    abi: BRND_SEASON_2_CONFIG_ABI,
     functionName: "authorizedFidOf",
     args: userAddress ? [userAddress] : undefined,
     query: {
@@ -194,7 +221,7 @@ export const useStoriesInMotion = (
   const switchToBase = useCallback(async () => {
     if (!isCorrectNetwork) {
       try {
-        await switchChain({ chainId: BRND_SEASON_1_CONFIG.CHAIN_ID });
+        await switchChain({ chainId: BRND_SEASON_2_CONFIG.CHAIN_ID });
       } catch (error) {
         console.error("Failed to switch network:", error);
         setError("Please switch to Base network");
@@ -473,8 +500,8 @@ export const useStoriesInMotion = (
 
         // Just call the contract with the already-encoded authData
         await writeContract({
-          address: BRND_SEASON_1_CONFIG.CONTRACT,
-          abi: BRND_SEASON_1_CONFIG_ABI,
+          address: BRND_SEASON_2_CONFIG.CONTRACT,
+          abi: BRND_SEASON_2_CONFIG_ABI,
           functionName: "levelUpBrndPower",
           args: [
             userFid,
@@ -483,7 +510,7 @@ export const useStoriesInMotion = (
             levelUpData.signature,
             authData, // ← Use directly, don't encode again
           ],
-          chainId: BRND_SEASON_1_CONFIG.CHAIN_ID,
+          chainId: BRND_SEASON_2_CONFIG.CHAIN_ID,
         });
       } catch (error: any) {
         console.error("Level up failed:", error);
@@ -620,10 +647,10 @@ export const useStoriesInMotion = (
           });
           console.log("📤 [Vote] Initiating approval transaction...");
           await writeContract({
-            address: BRND_SEASON_1_CONFIG.BRND_TOKEN,
+            address: BRND_SEASON_2_CONFIG.BRND_TOKEN,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [BRND_SEASON_1_CONFIG.CONTRACT, 111111000000000000000000n],
+            args: [BRND_SEASON_2_CONFIG.CONTRACT, 11111000000000000000000n],
           });
           console.log(
             "✅ [Vote] Approval transaction submitted, waiting for confirmation..."
@@ -634,21 +661,21 @@ export const useStoriesInMotion = (
         // Approval is sufficient, proceed with vote
         console.log("✅ [Vote] Allowance sufficient, proceeding with vote");
         console.log("🔍 [Vote] Final transaction details:", {
-          contract: BRND_SEASON_1_CONFIG.CONTRACT,
+          contract: BRND_SEASON_2_CONFIG.CONTRACT,
           brandIds,
           authData: authData.substring(0, 20) + "...",
           authDataLength: authData.length,
-          chainId: BRND_SEASON_1_CONFIG.CHAIN_ID,
+          chainId: BRND_SEASON_2_CONFIG.CHAIN_ID,
         });
 
         setLastOperation("vote");
 
         await writeContract({
-          address: BRND_SEASON_1_CONFIG.CONTRACT,
-          abi: BRND_SEASON_1_CONFIG_ABI,
+          address: BRND_SEASON_2_CONFIG.CONTRACT,
+          abi: BRND_SEASON_2_CONFIG_ABI,
           functionName: "vote",
           args: [brandIds, authData],
-          chainId: BRND_SEASON_1_CONFIG.CHAIN_ID,
+          chainId: BRND_SEASON_2_CONFIG.CHAIN_ID,
         });
         console.log(
           "✅ [Vote] Vote transaction submitted, waiting for confirmation..."
@@ -683,8 +710,8 @@ export const useStoriesInMotion = (
     async (powerLevel: number): Promise<string> => {
       try {
         const rewardAmount = await readContract(config, {
-          address: BRND_SEASON_1_CONFIG.CONTRACT,
-          abi: BRND_SEASON_1_CONFIG_ABI,
+          address: BRND_SEASON_2_CONFIG.CONTRACT,
+          abi: BRND_SEASON_2_CONFIG_ABI,
           functionName: "getRewardAmount",
           args: [powerLevel],
         });
@@ -701,8 +728,8 @@ export const useStoriesInMotion = (
   const getBrand = useCallback(async (brandId: number) => {
     try {
       const brandInfo = await readContract(config, {
-        address: BRND_SEASON_1_CONFIG.CONTRACT,
-        abi: BRND_SEASON_1_CONFIG_ABI,
+        address: BRND_SEASON_2_CONFIG.CONTRACT,
+        abi: BRND_SEASON_2_CONFIG_ABI,
         functionName: "getBrand",
         args: [brandId],
       });
@@ -767,18 +794,18 @@ export const useStoriesInMotion = (
         });
 
         console.log("📤 [CreateBrand] Sending transaction to contract", {
-          contract: BRND_SEASON_1_CONFIG.CONTRACT,
+          contract: BRND_SEASON_2_CONFIG.CONTRACT,
           handle,
           metadataHash,
           fid,
           walletAddress,
-          chainId: BRND_SEASON_1_CONFIG.CHAIN_ID,
+          chainId: BRND_SEASON_2_CONFIG.CHAIN_ID,
         });
 
         // Ensure proper type casting
         const result = await writeContract({
-          address: BRND_SEASON_1_CONFIG.CONTRACT as `0x${string}`,
-          abi: BRND_SEASON_1_CONFIG_ABI,
+          address: BRND_SEASON_2_CONFIG.CONTRACT as `0x${string}`,
+          abi: BRND_SEASON_2_CONFIG_ABI,
           functionName: "createBrand",
           args: [
             handle,
@@ -786,7 +813,7 @@ export const useStoriesInMotion = (
             BigInt(fid),
             walletAddress as `0x${string}`,
           ],
-          chainId: BRND_SEASON_1_CONFIG.CHAIN_ID,
+          chainId: BRND_SEASON_2_CONFIG.CHAIN_ID,
         });
 
         console.log(
@@ -1007,18 +1034,18 @@ export const useStoriesInMotion = (
         });
 
         console.log(
-          `📤 [ClaimReward] Sending transaction to contract: ${BRND_SEASON_1_CONFIG.CONTRACT}`
+          `📤 [ClaimReward] Sending transaction to contract: ${BRND_SEASON_2_CONFIG.CONTRACT}`
         );
         console.log(
-          `📤 [ClaimReward] Chain ID: ${BRND_SEASON_1_CONFIG.CHAIN_ID}`
+          `📤 [ClaimReward] Chain ID: ${BRND_SEASON_2_CONFIG.CHAIN_ID}`
         );
 
         await writeContract({
-          address: BRND_SEASON_1_CONFIG.CONTRACT,
-          abi: BRND_SEASON_1_CONFIG_ABI,
+          address: BRND_SEASON_2_CONFIG.CONTRACT,
+          abi: BRND_SEASON_2_CONFIG_ABI,
           functionName: "claimReward",
           args,
-          chainId: BRND_SEASON_1_CONFIG.CHAIN_ID,
+          chainId: BRND_SEASON_2_CONFIG.CHAIN_ID,
         });
 
         console.log("✅ [ClaimReward] Transaction submitted successfully");
@@ -1196,11 +1223,11 @@ export const useStoriesInMotion = (
                 });
                 setLastOperation("vote");
                 await writeContract({
-                  address: BRND_SEASON_1_CONFIG.CONTRACT,
-                  abi: BRND_SEASON_1_CONFIG_ABI,
+                  address: BRND_SEASON_2_CONFIG.CONTRACT,
+                  abi: BRND_SEASON_2_CONFIG_ABI,
                   functionName: "vote",
                   args: [pendingVoteBrandIds, authDataToUse],
-                  chainId: BRND_SEASON_1_CONFIG.CHAIN_ID,
+                  chainId: BRND_SEASON_2_CONFIG.CHAIN_ID,
                 });
                 console.log(
                   "✅ [Approve] Vote transaction submitted after approval"

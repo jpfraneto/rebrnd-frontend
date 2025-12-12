@@ -117,7 +117,7 @@ function LoginPage() {
     }
 
     // THIRD: If we have user context but auth failed (ONLY show this after loading is complete)
-    if (!isAuthenticated && miniappContext?.user?.fid) {
+    if (!isAuthenticated && miniappContext?.user?.fid && !isLoading) {
       return (
         <>
           <motion.div

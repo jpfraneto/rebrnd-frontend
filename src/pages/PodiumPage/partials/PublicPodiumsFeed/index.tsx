@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatUnits } from "viem";
 
 // Components
 import BrandCard from "@/components/cards/BrandCard";
@@ -34,8 +35,11 @@ function PublicPodiumsFeed() {
    * Initialize component with first page data on mount
    */
   useEffect(() => {
+    console.log("THE DATA HERE IS", data);
     if (data?.podiums && !isInitialized) {
+      console.log("THE DATA HERE IS", data);
       setAllPodiums(data.podiums);
+      console.log("THE DATA DOT PODIUMS HERE IS", data.podiums);
       setIsInitialized(true);
     }
   }, [data, isInitialized]);
@@ -53,9 +57,11 @@ function PublicPodiumsFeed() {
         // Subsequent pages - append new podiums
 
         setAllPodiums((prev) => {
-          // Filter out duplicates by ID
-          const existingIds = new Set(prev.map((p) => p.id));
-          const newPodiums = data.podiums.filter((p) => !existingIds.has(p.id));
+          // Filter out duplicates by transactionHash
+          const existingHashes = new Set(prev.map((p) => p.transactionHash));
+          const newPodiums = data.podiums.filter(
+            (p) => !existingHashes.has(p.transactionHash)
+          );
           return [...prev, ...newPodiums];
         });
       }
@@ -98,9 +104,9 @@ function PublicPodiumsFeed() {
   /**
    * Format time ago display
    */
-  const getTimeAgo = useCallback((createdAt: string) => {
+  const getTimeAgo = useCallback((date: string) => {
     const now = new Date();
-    const created = new Date(createdAt);
+    const created = new Date(date);
     const diffInHours = Math.floor(
       (now.getTime() - created.getTime()) / (1000 * 60 * 60)
     );
@@ -110,6 +116,17 @@ function PublicPodiumsFeed() {
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
     return created.toLocaleDateString();
+  }, []);
+
+  /**
+   * Format reward amount from wei
+   */
+  const formatReward = useCallback((amountWei: string) => {
+    try {
+      return formatUnits(BigInt(amountWei), 18);
+    } catch {
+      return "0";
+    }
   }, []);
 
   useEffect(() => {
@@ -182,61 +199,81 @@ function PublicPodiumsFeed() {
       {/* Scrollable container with automatic loading */}
       <div className={styles.scrollContainer} onScroll={handleScrollList}>
         <div className={styles.podiumsList}>
-          {allPodiums.map((podium) => (
-            <div key={podium.id} className={styles.podiumItem}>
-              {/* User info header */}
-              <div className={styles.podiumHeader}>
-                <div
-                  className={styles.userInfo}
-                  onClick={() => {
-                    sdk.actions.viewProfile({ fid: podium.user.fid });
-                  }}
-                >
-                  {podium.user.photoUrl && (
-                    <img
-                      src={podium.user.photoUrl}
-                      alt={podium.user.username}
-                      className={styles.userAvatar}
-                    />
-                  )}
-                  <div className={styles.userDetails}>
-                    <Typography size={14} weight="medium">
-                      {podium.user.username}
-                    </Typography>
-                    <Typography size={12} className={styles.timeAgo}>
-                      {getTimeAgo(podium.createdAt)}
-                    </Typography>
-                  </div>
-                </div>
-              </div>
-
-              {/* Podium content */}
-              <div className={styles.podiumRow}>
-                <div className={styles.podiumContent}>
-                  <div className={styles.podiumGrid}>
-                    {podium.brands.map((brand: Brand, index: number) => (
-                      <BrandCard
-                        key={`${podium.id}-brand-${index}`}
-                        name={brand.name}
-                        photoUrl={brand.imageUrl}
-                        orientation={
-                          index === 0
-                            ? "left"
-                            : index === 1
-                            ? "center"
-                            : "right"
-                        }
-                        score={brand.score}
-                        variation={getBrandScoreVariation(brand.score)}
-                        size="s"
-                        onClick={() => handleClickCard(brand.id)}
+          {allPodiums.map((podium) => {
+            // Convert brand1, brand2, brand3 to array for mapping
+            const brands = [podium.brand1, podium.brand2, podium.brand3];
+            return (
+              <div key={podium.transactionHash} className={styles.podiumItem}>
+                {/* User info header */}
+                <div className={styles.podiumHeader}>
+                  <div
+                    className={styles.userInfo}
+                    onClick={() => {
+                      sdk.actions.viewProfile({ fid: podium.user.fid });
+                    }}
+                  >
+                    {podium.user.photoUrl && (
+                      <img
+                        src={podium.user.photoUrl}
+                        alt={podium.user.username}
+                        className={styles.userAvatar}
                       />
-                    ))}
+                    )}
+                    <div className={styles.userDetails}>
+                      <Typography size={14} weight="medium">
+                        {podium.user.username}
+                      </Typography>
+                      <Typography size={12} className={styles.timeAgo}>
+                        {getTimeAgo(podium.date)}
+                      </Typography>
+                    </div>
+                  </div>
+                  {/* Payment and claim info */}
+                  <div className={styles.paymentInfo}>
+                    {podium.brndPaidWhenCreatingPodium !== null &&
+                      podium.brndPaidWhenCreatingPodium !== undefined && (
+                        <Typography size={12} className={styles.paidAmount}>
+                          Paid {podium.brndPaidWhenCreatingPodium} $BRND
+                        </Typography>
+                      )}
+                    {podium.claimedAt && podium.rewardAmount && (
+                      <Typography size={12} className={styles.claimedAmount}>
+                        Claimed {formatReward(podium.rewardAmount)} $BRND
+                      </Typography>
+                    )}
+                  </div>
+                </div>
+
+                {/* Podium content */}
+                <div className={styles.podiumRow}>
+                  <div className={styles.podiumContent}>
+                    <div className={styles.podiumGrid}>
+                      {brands.map((brand: Brand, index: number) => (
+                        <BrandCard
+                          key={`${podium.transactionHash}-brand-${index}`}
+                          name={brand.name}
+                          photoUrl={brand.imageUrl}
+                          context="podium"
+                          podiumPosition={index + 1}
+                          orientation={
+                            index === 0
+                              ? "left"
+                              : index === 1
+                              ? "center"
+                              : "right"
+                          }
+                          score={brand.score}
+                          variation={getBrandScoreVariation(brand.score)}
+                          size="s"
+                          onClick={() => handleClickCard(brand.id)}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Loading indicator when fetching more */}
           {(isFetching || isLoadingMore) && currentPage > 1 && (

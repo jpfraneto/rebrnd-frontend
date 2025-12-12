@@ -440,16 +440,64 @@ const Power: React.FC = () => {
     return null;
   };
 
-  const renderProgressBar = (progress: { current: number; total: number }) => {
-    const percentage = (progress.current / progress.total) * 100;
+  const renderStreakBars = (progress: { current: number; total: number }) => {
+    const filledBars = Math.min(progress.current, progress.total);
     return (
-      <div className={styles.progressContainer}>
-        <div className={styles.progressBar}>
-          <div
-            className={styles.progressFill}
-            style={{ width: `${percentage}%` }}
-          />
+      <div className={styles.streakBarsContainer}>
+        <div className={styles.streakBars}>
+          {Array.from({ length: progress.total }).map((_, index) => (
+            <div
+              key={index}
+              className={`${styles.streakBar} ${
+                index < filledBars ? styles.streakBarFilled : ""
+              }`}
+            />
+          ))}
         </div>
+        <Typography
+          variant="geist"
+          weight="regular"
+          size={12}
+          className={styles.streakText}
+        >
+          PODIUM STREAK: {progress.current} OUT OF {progress.total}
+        </Typography>
+      </div>
+    );
+  };
+
+  const renderPodiumsBars = (progress: { current: number; total: number }) => {
+    const percentage = (progress.current / progress.total) * 100;
+
+    return (
+      <div className={styles.podiumsBarsContainer}>
+        <div className={styles.podiumsBars}>
+          <div className={styles.podiumsBarBackground}>
+            {/* Filled portion (lighter) */}
+            <div
+              className={styles.podiumsBarFilled}
+              style={{ width: `${percentage}%` }}
+            />
+            {/* Unfilled portion (darker) */}
+            <div
+              className={styles.podiumsBarUnfilled}
+              style={{ width: `${100 - percentage}%` }}
+            />
+            {/* White vertical indicator line */}
+            <div
+              className={styles.podiumsBarIndicator}
+              style={{ left: `${percentage}%` }}
+            />
+          </div>
+        </div>
+        <Typography
+          variant="geist"
+          weight="regular"
+          size={12}
+          className={styles.podiumsText}
+        >
+          {progress.current} OF {progress.total} PODIUMS COMPLETED
+        </Typography>
       </div>
     );
   };
@@ -471,7 +519,7 @@ const Power: React.FC = () => {
               className={`${styles.levelItem} ${styles.skeletonItem}`}
             >
               <div className={styles.skeletonLevelNumber}>
-                <Typography variant="druk" weight="regular" size={20}>
+                <Typography variant="druk" weight="wide" size={20}>
                   {level.id}
                 </Typography>
               </div>
@@ -600,7 +648,7 @@ const Power: React.FC = () => {
                     }`}
                     onClick={level.clickFunction}
                   >
-                    <Typography variant="druk" weight="regular" size={20}>
+                    <Typography variant="druk" weight="wide" size={20}>
                       {level.id}
                     </Typography>
 
@@ -615,24 +663,14 @@ const Power: React.FC = () => {
                         >
                           {level.title}
                         </Typography>
-                        {level.progress && (
-                          <Typography
-                            variant="geist"
-                            weight="regular"
-                            size={12}
-                            className={styles.progressText}
-                          >
-                            {level.actionType === "streak" &&
-                            level.progress.maxStreak !== undefined
-                              ? `Current: ${level.progress.current} days | Max: ${level.progress.maxStreak} days`
-                              : level.actionType === "streak"
-                              ? `Current: ${level.progress.current} days`
-                              : `${level.progress.current}/${level.progress.total}`}
-                          </Typography>
-                        )}
                       </div>
 
-                      {level.progress && renderProgressBar(level.progress)}
+                      {level.progress &&
+                        level.actionType === "streak" &&
+                        renderStreakBars(level.progress)}
+                      {level.progress &&
+                        level.actionType === "podiums" &&
+                        renderPodiumsBars(level.progress)}
                     </div>
 
                     <div className={styles.levelAction}>

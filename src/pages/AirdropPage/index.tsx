@@ -1,6 +1,6 @@
 // Dependencies
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 
 // StyleSheet
 import styles from "./AirdropPage.module.scss";
@@ -14,6 +14,7 @@ import Button from "@/shared/components/Button";
 import { useAirdropCheck } from "@/shared/hooks/user/useAirdropCheck";
 import { useAirdropLeaderboard } from "@/shared/hooks/user/useAirdropLeaderboard";
 import { useAirdropClaimStatus } from "@/shared/hooks/user/useAirdropClaimStatus";
+import { useAirdropStats } from "@/shared/hooks/contract/useAirdropStats";
 
 // Hocs
 import withProtectionRoute from "@/hocs/withProtectionRoute";
@@ -32,6 +33,9 @@ import ClaimAirdrop from "./partials/ClaimAirdrop";
 
 const AIRDROP_STORAGE_KEY = "airdrop_data";
 
+// Admin FIDs from the provided image
+const ADMIN_FIDS = [6431, 6099, 8109, 222144, 16098];
+
 // Challenge name mapping from API to display titles
 const challengeMapping: Record<string, string> = {
   "Follow Accounts": "FOLLOW @BRND + @FLOC",
@@ -44,15 +48,17 @@ const challengeMapping: Record<string, string> = {
   "Pro User": "FARCASTER PRO",
 };
 
-type PageView = "main" | "leaderboard" | "multipliers" | "claim";
+type PageView = "main" | "leaderboard" | "multipliers" | "claim" | "admin";
 
 function AirdropPage(): React.ReactNode {
   const navigate = useNavigate();
   const location = useLocation();
+  const { fid: routeFid } = useParams();
   const [expandedQuest, setExpandedQuest] = useState<number | null>(null);
   const [currentView, setCurrentView] = useState<PageView>("main");
   const [storedData, setStoredData] = useState<any>(null);
   const [shouldFetch, setShouldFetch] = useState(false);
+  const [adminInput, setAdminInput] = useState<string>("");
   const [nowMs, setNowMs] = useState<number>(Date.now());
   const [airdropState, setAirdropState] = useState<{
     canClaim: boolean;
@@ -66,6 +72,10 @@ function AirdropPage(): React.ReactNode {
   const AIRDROP_TIMESTAMP = Number(AIRDROP_TIMESTAMP_ENV);
 
   const { data: authData } = useAuth();
+
+  // Check if current user is an admin
+  const isAdmin = authData?.fid && ADMIN_FIDS.includes(authData.fid);
+  const isViewingOtherUser = routeFid && routeFid !== authData?.fid?.toString();
 
   // Use airdrop data from auth endpoint for fast rendering
   const airdropData = authData?.airdrop;
@@ -97,6 +107,38 @@ function AirdropPage(): React.ReactNode {
 
   // Countdown to midnight UTC (same as CongratsView)
   const [countdown, setCountdown] = useState<string>("00:00:00");
+
+  // Countdown to airdrop start: December 19th, 2024 at 13:13 PM UTC
+  const [airdropStartCountdown, setAirdropStartCountdown] =
+    useState<string>("");
+
+  // Calculate time until airdrop start (December 19th, 2024 at 13:13 PM UTC)
+  const getTimeUntilAirdropStart = useCallback(() => {
+    const now = new Date();
+    const airdropStartDate = new Date(Date.UTC(2025, 11, 19, 13, 13, 0)); // December is month 11 (0-indexed)
+
+    const diff = airdropStartDate.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      return "00:00:00";
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    if (days > 0) {
+      return `${days}d ${String(hours).padStart(2, "0")}h ${String(
+        minutes
+      ).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+    }
+
+    return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(
+      2,
+      "0"
+    )}m ${String(seconds).padStart(2, "0")}s`;
+  }, []);
 
   // Calculate time until midnight UTC
   const getTimeUntilMidnightUTC = useCallback(() => {
@@ -139,8 +181,25 @@ function AirdropPage(): React.ReactNode {
     return () => clearInterval(interval);
   }, [getTimeUntilMidnightUTC]);
 
+  // Update airdrop start countdown every second
+  useEffect(() => {
+    // Set initial countdown
+    setAirdropStartCountdown(getTimeUntilAirdropStart());
+
+    // Update every second
+    const interval = setInterval(() => {
+      setAirdropStartCountdown(getTimeUntilAirdropStart());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [getTimeUntilAirdropStart]);
+
   const { data: leaderboardData, isLoading: leaderboardLoading } =
     useAirdropLeaderboard(100);
+
+  // Get real-time airdrop stats from contract
+  const { data: airdropStats, isLoading: airdropStatsLoading } =
+    useAirdropStats();
 
   // Preload background image on mount
   useEffect(() => {
@@ -170,10 +229,13 @@ function AirdropPage(): React.ReactNode {
   useEffect(() => {
     if (location.pathname === "/claim-airdrop") {
       setCurrentView("claim");
+    } else if (isAdmin && location.pathname === "/airdrop" && !routeFid) {
+      // Only show admin dashboard if admin goes to /airdrop (no FID)
+      setCurrentView("admin");
     } else {
       setCurrentView("main");
     }
-  }, [location.pathname]);
+  }, [location.pathname, isAdmin, routeFid]);
 
   // Save data to localStorage when new data arrives
   useEffect(() => {
@@ -224,13 +286,17 @@ function AirdropPage(): React.ReactNode {
     setCurrentView("claim");
   };
 
+  const handleAdminImpersonate = () => {
+    sdk.haptics.selectionChanged();
+    if (adminInput && /^\d+$/.test(adminInput)) {
+      navigate(`/airdrop/${adminInput}`);
+      setAdminInput("");
+    }
+  };
+
   const handleBackToMain = () => {
     sdk.haptics.selectionChanged();
-    if (currentView !== "main") {
-      setCurrentView("main");
-    } else {
-      navigate(-1);
-    }
+    navigate("/");
   };
 
   const toggleQuest = (questId: number) => {
@@ -458,6 +524,191 @@ function AirdropPage(): React.ReactNode {
     );
   }
 
+  // Admin Dashboard View
+  if (currentView === "admin" && isAdmin) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.airdropTitle}>
+          <Typography
+            variant="druk"
+            weight="wide"
+            size={48}
+            lineHeight={48}
+            className={styles.airdropTitleText}
+          >
+            ADMIN DASHBOARD
+          </Typography>
+        </div>
+
+        <div className={styles.headerSection}>
+          <button className={styles.backButton} onClick={handleBackToMain}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18L9 12L15 6"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className={styles.adminContent}>
+          <div className={styles.impersonateSection}>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              className={styles.adminSectionTitle}
+            >
+              Impersonate User
+            </Typography>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={14}
+              lineHeight={18}
+              className={styles.adminDescription}
+            >
+              Enter a FID to view their airdrop stats
+            </Typography>
+            <div className={styles.impersonateInput}>
+              <input
+                type="text"
+                placeholder="Enter FID (numbers only)"
+                value={adminInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^\d*$/.test(value)) {
+                    setAdminInput(value);
+                  }
+                }}
+                className={styles.fidInput}
+              />
+              <Button
+                caption="View User"
+                onClick={handleAdminImpersonate}
+                disabled={!adminInput || !/^\d+$/.test(adminInput)}
+                variant="primary"
+              />
+            </div>
+          </div>
+
+          <div className={styles.airdropStatsSection}>
+            <Typography
+              variant="geist"
+              weight="medium"
+              size={16}
+              lineHeight={20}
+              className={styles.adminSectionTitle}
+            >
+              Airdrop Statistics
+            </Typography>
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <Typography
+                  variant="druk"
+                  weight="wide"
+                  size={32}
+                  lineHeight={32}
+                >
+                  {airdropStatsLoading
+                    ? "..."
+                    : airdropStats?.claimStats.totalClaimers?.toLocaleString() ||
+                      "—"}
+                </Typography>
+                <Typography variant="geist" weight="medium" size={14}>
+                  Total Claims
+                </Typography>
+              </div>
+              <div className={styles.statCard}>
+                <Typography
+                  variant="druk"
+                  weight="wide"
+                  size={32}
+                  lineHeight={32}
+                >
+                  1111
+                </Typography>
+                <Typography variant="geist" weight="medium" size={14}>
+                  Eligible Users
+                </Typography>
+              </div>
+              <div className={styles.statCard}>
+                <Typography
+                  variant="druk"
+                  weight="wide"
+                  size={32}
+                  lineHeight={32}
+                >
+                  {airdropStatsLoading
+                    ? "..."
+                    : airdropStats?.claimStats.totalClaimedTokens
+                    ? `${(
+                        airdropStats.claimStats.totalClaimedTokens / 1000000
+                      ).toFixed(1)}M`
+                    : "—"}
+                </Typography>
+                <Typography variant="geist" weight="medium" size={14}>
+                  Tokens Claimed
+                </Typography>
+              </div>
+              <div className={styles.statCard}>
+                <Typography
+                  variant="druk"
+                  weight="wide"
+                  size={32}
+                  lineHeight={32}
+                >
+                  {airdropStatsLoading
+                    ? "..."
+                    : airdropStats?.claimRate
+                    ? `${airdropStats.claimRate.toFixed(0)}%`
+                    : "—"}
+                </Typography>
+                <Typography variant="geist" weight="medium" size={14}>
+                  Claim Rate
+                </Typography>
+              </div>
+              <div className={styles.statCard}>
+                <Typography
+                  variant="druk"
+                  weight="wide"
+                  size={32}
+                  lineHeight={32}
+                >
+                  {airdropStatsLoading
+                    ? "..."
+                    : airdropStats?.timeRemainingFormatted || "—"}
+                </Typography>
+                <Typography variant="geist" weight="medium" size={14}>
+                  Time Remaining
+                </Typography>
+              </div>
+              <div className={styles.statCard}>
+                <Typography
+                  variant="druk"
+                  weight="wide"
+                  size={32}
+                  lineHeight={32}
+                >
+                  {airdropStatsLoading
+                    ? "..."
+                    : airdropStats?.airdropStatus || "—"}
+                </Typography>
+                <Typography variant="geist" weight="medium" size={14}>
+                  Airdrop Status
+                </Typography>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Main component with data
   return (
     <div className={styles.container}>
@@ -523,8 +774,21 @@ function AirdropPage(): React.ReactNode {
                     lineHeight={18}
                     className={styles.leaderboardLabel}
                   >
-                    LEADERBOARD
+                    {isViewingOtherUser
+                      ? `VIEWING FID ${routeFid}`
+                      : "LEADERBOARD"}
                   </Typography>
+                  {isAdmin && !isViewingOtherUser && (
+                    <Typography
+                      variant="geist"
+                      weight="medium"
+                      size={10}
+                      lineHeight={12}
+                      className={styles.adminBadge}
+                    >
+                      ADMIN
+                    </Typography>
+                  )}
                 </div>
               )}
 
@@ -578,7 +842,7 @@ function AirdropPage(): React.ReactNode {
               size={12}
               lineHeight={16}
             >
-              Updates in: {countdown}
+              Refreshes in: {countdown}
             </Typography>
           </div>
           <span onClick={handleMultipliersClick}>
@@ -776,7 +1040,15 @@ function AirdropPage(): React.ReactNode {
           ))}
         </div>
       ) : currentView === "main" && !currentData ? (
-        <div className={styles.emptyState}>
+        <div
+          onClick={() => {
+            sdk.haptics.selectionChanged();
+            sdk.actions.viewCast({
+              hash: "0x10871d1e136be4e37625dd1126be97e873947ea3",
+            });
+          }}
+          className={styles.emptyState}
+        >
           <Typography
             variant="geist"
             weight="medium"
@@ -1028,9 +1300,11 @@ function AirdropPage(): React.ReactNode {
               return (
                 <Button
                   iconLeft={<CheckLabelIcon />}
-                  caption="Check Eligibility"
-                  onClick={handleCheckAirdrop}
-                  loading={isCheckingAirdrop}
+                  caption={`Airdrop in ${airdropStartCountdown}`}
+                  disabled={true}
+                  onClick={() => {
+                    sdk.haptics.selectionChanged();
+                  }}
                 />
               );
             }
@@ -1104,6 +1378,20 @@ function AirdropPage(): React.ReactNode {
               />
             );
           })()}
+        </div>
+      )}
+
+      {/* Admin Dashboard Button */}
+      {isAdmin && currentView === "main" && (
+        <div className={styles.adminDashboardSection}>
+          <Button
+            caption={isViewingOtherUser ? "Admin Dashboard" : "Admin Dashboard"}
+            onClick={() => {
+              sdk.haptics.selectionChanged();
+              navigate("/airdrop");
+            }}
+            variant="secondary"
+          />
         </div>
       )}
     </div>

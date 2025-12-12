@@ -150,7 +150,17 @@ export default function ShareView({
       const profile2 = getProfileOrChannel(currentBrands[0]);
       const profile3 = getProfileOrChannel(currentBrands[2]);
 
-      const castText = `I just created my @brnd podium of today:\n\n🥇${currentBrands[1]?.name} - ${profile1}\n🥈${currentBrands[0]?.name} - ${profile2}\n🥉${currentBrands[2]?.name} - ${profile3}`;
+      const castText = `[this wont count to your current brnd score because it is not ready yet. after casting this and going through the whole flow dc @jpfraneto.eth if something didn't work ty]\n\ni just created my @brnd podium of today:\n\n🥇${
+        currentBrands[1]?.name?.toLowerCase?.() || currentBrands[1]?.name
+      } - ${
+        typeof profile1 === "string" ? profile1.toLowerCase() : profile1
+      }\n🥈${
+        currentBrands[0]?.name?.toLowerCase?.() || currentBrands[0]?.name
+      } - ${
+        typeof profile2 === "string" ? profile2.toLowerCase() : profile2
+      }\n🥉${
+        currentBrands[2]?.name?.toLowerCase?.() || currentBrands[2]?.name
+      } - ${typeof profile3 === "string" ? profile3.toLowerCase() : profile3}`;
 
       // Use the correct embed URL that matches backend expectation
       const embedUrl = `https://brnd.land?txHash=${transactionHash}`;
@@ -183,7 +193,7 @@ export default function ShareView({
 
           // Use transaction hash as the vote ID since backend now uses txHash as primary key
           const voteIdForVerification = transactionHash || "";
-          
+
           const verificationResult = await verifyShareAndGetClaimSignature(
             castHash,
             voteIdForVerification,
@@ -294,6 +304,9 @@ export default function ShareView({
       setShareError(
         error.message || "Failed to claim reward. Please try again."
       );
+
+      // Reset claim data so user can try again with fresh state
+      setClaimData(null);
     }
   }, [
     claimData,
@@ -359,7 +372,7 @@ export default function ShareView({
           weight={"wide"}
           className={styles.title}
         >
-          Already voted today!
+          You just created your podium!
         </Typography>
       </div>
 

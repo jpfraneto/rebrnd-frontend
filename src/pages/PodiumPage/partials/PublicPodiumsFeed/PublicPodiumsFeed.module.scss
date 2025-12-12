@@ -76,6 +76,45 @@
   opacity: 0.8;
 }
 
+.paymentInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.paidAmount {
+  color: #fff;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.claimedAmount {
+  background: linear-gradient(
+    90deg,
+    #ff9533 0%,
+    #ff0000 25%,
+    #0c00ff 50%,
+    #00ff00 75%,
+    #ff9533 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rainbowShift 3s linear infinite;
+  font-weight: 600;
+}
+
+@keyframes rainbowShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
 .points {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;

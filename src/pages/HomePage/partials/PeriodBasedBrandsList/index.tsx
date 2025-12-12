@@ -41,6 +41,18 @@ function PeriodBasedBrandsList({
   const { data, refetch, isLoading } = useBrandList("top", "", 1, 5, period);
   const [startY, setStartY] = useState(0);
   const navigate = useNavigate();
+  
+  // Auto-rotate periods every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentIndex = PERIODS.indexOf(period);
+      const nextIndex = (currentIndex + 1) % PERIODS.length;
+      onPeriodChange(PERIODS[nextIndex]);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [period, onPeriodChange]);
+
   useEffect(() => {
     try {
       refetch();
@@ -89,8 +101,19 @@ function PeriodBasedBrandsList({
       : name;
   };
 
-  const handleClickBrand = (id: string) => {
+  const handleClickBrand = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     navigate(`/brand/${id}`);
+  };
+
+  const handleClickRankingSection = () => {
+    // Navigate to ranking page with current period state
+    navigate(`/ranking?period=${period}`);
+  };
+
+  const handleClickLeftSection = () => {
+    // Navigate to ranking page with current period state
+    navigate(`/ranking?period=${period}`);
   };
 
   return (
@@ -102,18 +125,14 @@ function PeriodBasedBrandsList({
       >
         <div
           className={styles.leftSection}
-          onClick={() => {
-            const currentIndex = PERIODS.indexOf(period);
-            const nextIndex = (currentIndex + 1) % PERIODS.length;
-            onPeriodChange(PERIODS[nextIndex]);
-          }}
+          onClick={handleClickLeftSection}
         >
           <div className={styles.periodSvg}>
             <PeriodSvg />
           </div>
         </div>
 
-        <div className={styles.rightSection}>
+        <div className={styles.rightSection} onClick={handleClickRankingSection}>
           <ul className={styles.brandsList}>
             {isLoading || !processedBrands || processedBrands.length === 0
               ? // Show skeleton loading state
@@ -128,7 +147,7 @@ function PeriodBasedBrandsList({
               : // Show actual brand data
                 processedBrands.slice(0, 3).map((brand, index) => (
                   <li
-                    onClick={() => handleClickBrand(brand.id.toString())}
+                    onClick={(e) => handleClickBrand(e, brand.id.toString())}
                     key={`brand-item-${index}`}
                     className={styles.brandItem}
                   >

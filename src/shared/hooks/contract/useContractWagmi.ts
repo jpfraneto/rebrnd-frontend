@@ -121,6 +121,50 @@ export const useContractWagmi = (
     },
   });
 
+  // Withdrawal delay configuration
+  const {
+    data: withdrawDelayTimeSeconds,
+    isLoading: isLoadingWithdrawDelay,
+    refetch: refetchWithdrawDelay,
+  } = useReadContract({
+    address: BRND_STAKING_CONFIG.TELLER_VAULT,
+    abi: ERC4626_ABI,
+    functionName: "withdrawDelayTimeSeconds",
+    query: {
+      enabled: !!userAddress,
+    },
+  });
+
+  // When shares were last transferred to user
+  const {
+    data: sharesLastTransferredAt,
+    isLoading: isLoadingLastTransferred,
+    refetch: refetchLastTransferred,
+  } = useReadContract({
+    address: BRND_STAKING_CONFIG.TELLER_VAULT,
+    abi: ERC4626_ABI,
+    functionName: "getSharesLastTransferredAt",
+    args: userAddress ? [userAddress] : undefined,
+    query: {
+      enabled: !!userAddress,
+    },
+  });
+
+  // Maximum redeemable shares (0 if withdrawal delay is active)
+  const {
+    data: maxRedeemableShares,
+    isLoading: isLoadingMaxRedeem,
+    refetch: refetchMaxRedeem,
+  } = useReadContract({
+    address: BRND_STAKING_CONFIG.TELLER_VAULT,
+    abi: ERC4626_ABI,
+    functionName: "maxRedeem",
+    args: userAddress ? [userAddress] : undefined,
+    query: {
+      enabled: !!userAddress,
+    },
+  });
+
   // Function to convert BRND amount to vault shares
   const convertBrndToShares = useCallback((brndAmount: string): bigint => {
     try {
@@ -193,6 +237,40 @@ export const useContractWagmi = (
 
   // Combined loading state
   const isPending = isWritePending;
+
+  // Helper functions for withdrawal delay
+  const getWithdrawAvailableAt = useCallback((): Date | null => {
+    if (!sharesLastTransferredAt || !withdrawDelayTimeSeconds) return null;
+    
+    const lastTransferTime = Number(sharesLastTransferredAt) * 1000; // Convert to milliseconds
+    const delayMs = Number(withdrawDelayTimeSeconds) * 1000; // Convert to milliseconds
+    return new Date(lastTransferTime + delayMs);
+  }, [sharesLastTransferredAt, withdrawDelayTimeSeconds]);
+
+  const getSecondsUntilWithdrawable = useCallback((): number => {
+    const availableAt = getWithdrawAvailableAt();
+    if (!availableAt) return 0;
+    
+    const now = Date.now();
+    const timeUntil = availableAt.getTime() - now;
+    return Math.max(0, Math.ceil(timeUntil / 1000)); // Return seconds, minimum 0
+  }, [getWithdrawAvailableAt]);
+
+  const isWithdrawAvailable = useCallback((): boolean => {
+    return getSecondsUntilWithdrawable() === 0;
+  }, [getSecondsUntilWithdrawable]);
+
+  const formatTimeRemaining = useCallback((seconds: number): string => {
+    if (seconds <= 0) return "";
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    }
+    return `${remainingSeconds}s`;
+  }, []);
 
   // Enhanced error handling
   const parseContractError = (error: any): string => {
@@ -824,6 +902,28 @@ export const useContractWagmi = (
       refetchVaultShares();
       refetchStakedAmount();
       refetchAllowance();
+      refetchWithdrawDelay();
+      refetchLastTransferred();
+      refetchMaxRedeem();
     },
+
+    // Withdrawal delay data and functions
+    withdrawDelayTimeSeconds: withdrawDelayTimeSeconds 
+      ? Number(withdrawDelayTimeSeconds) 
+      : 300, // Default 5 minutes if not loaded
+    sharesLastTransferredAt: sharesLastTransferredAt 
+      ? Number(sharesLastTransferredAt) 
+      : 0,
+    maxRedeemableShares: maxRedeemableShares 
+      ? formatUnits(maxRedeemableShares as bigint, 18) 
+      : "0",
+    getWithdrawAvailableAt,
+    getSecondsUntilWithdrawable,
+    isWithdrawAvailable,
+    formatTimeRemaining,
+    
+    // Loading states for withdrawal delay
+    isLoadingWithdrawDelayInfo: 
+      isLoadingWithdrawDelay || isLoadingLastTransferred || isLoadingMaxRedeem,
   };
 };

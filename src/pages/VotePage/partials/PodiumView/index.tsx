@@ -33,6 +33,7 @@ import GoBackIcon from "@/assets/icons/go-back-icon.svg?react";
 // Hooks
 import { ModalsIds, useModal } from "@/hooks/ui";
 import sdk from "@farcaster/miniapp-sdk";
+import Button from "@/shared/components/Button";
 
 interface PodiumViewProps extends VotingViewProps {}
 
@@ -106,7 +107,20 @@ export default function PodiumView({}: PodiumViewProps) {
       }
 
       // Get the brands from ref (to avoid closure issues)
-      const brands = votedBrandsRef.current;
+      // Podium component passes: [left(2nd), middle(1st), right(3rd)]
+      // Backend expects: [1st, 2nd, 3rd]
+      const podiumBrands = votedBrandsRef.current;
+
+      // Reorder to backend format: [1st, 2nd, 3rd]
+      const brandsInBackendFormat =
+        podiumBrands && podiumBrands.length >= 3
+          ? [podiumBrands[1], podiumBrands[0], podiumBrands[2]] // [middle(1st), left(2nd), right(3rd)]
+          : null;
+
+      console.log(
+        "THE BRANDS HERE ARE (Backend Format):",
+        brandsInBackendFormat
+      );
 
       // Calculate today's day number
       const now = Math.floor(Date.now() / 1000);
@@ -118,13 +132,13 @@ export default function PodiumView({}: PodiumViewProps) {
       updateAuthData({
         hasVotedToday: true,
         todaysVote:
-          brands && brands.length >= 3
+          brandsInBackendFormat && brandsInBackendFormat.length >= 3
             ? {
                 id: authData?.todaysVote?.id || "", // Will be updated by backend later
                 date: new Date().toISOString(),
-                brand1: brands[0], // 1st place (2nd in UI)
-                brand2: brands[1], // 2nd place (1st in UI)
-                brand3: brands[2], // 3rd place (3rd in UI)
+                brand1: brandsInBackendFormat[0], // 1st place
+                brand2: brandsInBackendFormat[1], // 2nd place
+                brand3: brandsInBackendFormat[2], // 3rd place
               }
             : authData?.todaysVote || null,
         todaysVoteStatus: {
@@ -400,10 +414,12 @@ export default function PodiumView({}: PodiumViewProps) {
       try {
         const votingStatus = determineVotingStrategy();
         console.log("votingStatus", votingStatus);
+        // Podium component passes: [left(2nd), middle(1st), right(3rd)]
+        // Backend expects: [1st, 2nd, 3rd]
         const brandIds: [number, number, number] = [
-          brands[1].id, // 1st place
-          brands[0].id, // 2nd place
-          brands[2].id, // 3rd place
+          brands[1].id, // 1st place (middle slot in UI)
+          brands[0].id, // 2nd place (left slot in UI)
+          brands[2].id, // 3rd place (right slot in UI)
         ];
 
         console.log(`Voting status:`, votingStatus);
@@ -532,13 +548,15 @@ export default function PodiumView({}: PodiumViewProps) {
   const handleShare = useCallback(async () => {
     if (isSharing || isVerifying) return;
 
+    // Backend stores: brand1=1st, brand2=2nd, brand3=3rd
+    // Podium component expects: [left(2nd), middle(1st), right(3rd)]
     const brands =
       votedBrandsRef.current ||
       (authData?.todaysVote?.brand1
         ? [
-            authData.todaysVote.brand2!,
-            authData.todaysVote.brand1!,
-            authData.todaysVote.brand3!,
+            authData.todaysVote.brand2!, // left slot (2nd place)
+            authData.todaysVote.brand1!, // middle slot (1st place)
+            authData.todaysVote.brand3!, // right slot (3rd place)
           ]
         : null);
 
@@ -675,6 +693,7 @@ export default function PodiumView({}: PodiumViewProps) {
     } catch (error: any) {
       console.error("❌ [PodiumView] Claim failed:", error);
       setIsClaiming(false);
+      setClaimData(null); // Reset claim data so user can try again
       openModal(ModalsIds.BOTTOM_ALERT, {
         title: "Claim Failed",
         content: (
@@ -765,7 +784,7 @@ export default function PodiumView({}: PodiumViewProps) {
             💸 VOTE COST
           </Typography>
           <Typography size={11} lineHeight={13}>
-            • Base cost: 100 $BRND (Level 0-1)
+            • Base cost: 100 $BRND (Level 0)
           </Typography>
           <Typography size={11} lineHeight={13}>
             • Scales with BRND Power Level
@@ -780,13 +799,11 @@ export default function PodiumView({}: PodiumViewProps) {
             💰 REWARDS
           </Typography>
           <Typography size={11} lineHeight={13}>
-            • Earn 10x your vote cost back
+            • If you share your podium on farcaster, you can claim 10x of that
+            $BRND back as rewards.
           </Typography>
           <Typography size={11} lineHeight={13}>
-            • Example: 100 $BRND vote → 1,000 $BRND reward
-          </Typography>
-          <Typography size={11} lineHeight={13}>
-            • Claim rewards after creating your podium and sharing it as a cast
+            • Example: 100 $BRND vote → 1,000 $BRND reward (900 $BRND profit)
           </Typography>
 
           <Typography size={13} lineHeight={16} weight="medium">
@@ -796,10 +813,18 @@ export default function PodiumView({}: PodiumViewProps) {
             • Once per day • Resets at midnight UTC
           </Typography>
           <Typography size={11} lineHeight={13}>
-            • All votes recorded on Base blockchain
+            • All votes recorded on Base blockchain, the contract is here{" "}
+            <span
+              onClick={() => {
+                sdk.actions.openUrl({ url: "" });
+              }}
+            >
+              PASTE LAST URL HERE
+            </span>
           </Typography>
           <Typography size={11} lineHeight={13}>
-            • Leaderboard updates in real-time
+            • Leaderboard updates in real-time, points earned also depend on
+            your $BRND power level.
           </Typography>
         </div>
       ),
@@ -914,6 +939,22 @@ export default function PodiumView({}: PodiumViewProps) {
               </span>
             </Typography>
           </span>
+          {isConnected ? (
+            <Typography size={12} lineHeight={16} textAlign="center">
+              Your $BRND balance:{" "}
+              {isLoadingBrndBalance
+                ? "Loading..."
+                : brndBalance
+                ? parseFloat(brndBalance).toFixed(0)
+                : "0"}
+            </Typography>
+          ) : (
+            <Button
+              caption="🔗 Connect Wallet"
+              onClick={handleWalletConnection}
+              variant="primary"
+            />
+          )}
 
           {/* Show insufficient balance warning */}
           {(() => {
@@ -921,7 +962,7 @@ export default function PodiumView({}: PodiumViewProps) {
             // Only show insufficient balance warning when:
             // 1. Balance data has finished loading (not while loading)
             // 2. User hasn't voted yet
-            // 3. Strategy is actually "insufficient-brnd" 
+            // 3. Strategy is actually "insufficient-brnd"
             if (
               !isLoadingBrndBalance && // Wait for balance to load
               votingStatus.strategy === "insufficient-brnd" &&
@@ -938,12 +979,12 @@ export default function PodiumView({}: PodiumViewProps) {
                     ⚠️ Insufficient BRND Balance
                   </Typography>
                   <Typography size={12} lineHeight={16} textAlign="center">
-                    You need {votingStatus.requiredAmount.toFixed(0)} BRND to
+                    You need {votingStatus.requiredAmount.toFixed(0)} $BRND to
                     vote
                   </Typography>
                   <Typography size={11} lineHeight={14} textAlign="center">
                     Current balance: {votingStatus.currentBalance.toFixed(2)}{" "}
-                    BRND
+                    $BRND
                   </Typography>
                 </div>
               );
@@ -952,173 +993,190 @@ export default function PodiumView({}: PodiumViewProps) {
           })()}
         </div>
       </motion.div>
-      {/* Always show podium - button changes based on state */}
-      <Podium
-        onVote={handlePodiumButtonClick}
-        variant={
-          authData?.todaysVoteStatus?.hasVoted || hasVotedOnChain
-            ? "readonly"
-            : "selection"
-        }
-        initial={
-          authData?.todaysVote
-            ? [
-                authData.todaysVote.brand2!,
-                authData.todaysVote.brand1!,
-                authData.todaysVote.brand3!,
-              ]
-            : undefined
-        }
-        buttonLabel={(() => {
-          // If user has claimed, show claimed state
-          if (authData?.todaysVoteStatus?.hasClaimed) {
-            return "✅ Claimed";
+      {/* Show podium only if wallet is connected */}
+      {isConnected &&
+      (isLoadingBrndBalance ||
+        determineVotingStrategy().strategy !== "insufficient-brnd") ? (
+        <Podium
+          onVote={handlePodiumButtonClick}
+          variant={
+            authData?.todaysVoteStatus?.hasVoted || hasVotedOnChain
+              ? "readonly"
+              : "selection"
           }
-
-          // If user has shared, show claim button
-          if (authData?.todaysVoteStatus?.hasShared) {
-            if (isClaiming || isClaimPending || isClaimConfirming) {
-              if (isClaimPending) return "⏳ Confirm in wallet...";
-              if (isClaimConfirming) return "🔄 Processing...";
-              return "💰 Claiming...";
+          initial={
+            authData?.todaysVote
+              ? [
+                  authData.todaysVote.brand2!, // left slot (2nd place)
+                  authData.todaysVote.brand1!, // middle slot (1st place)
+                  authData.todaysVote.brand3!, // right slot (3rd place)
+                ]
+              : undefined
+          }
+          buttonLabel={(() => {
+            // If user has claimed, show claimed state
+            if (authData?.todaysVoteStatus?.hasClaimed) {
+              return "✅ Claimed";
             }
-            if (claimData) {
-              const claimAmount = parseFloat(
-                formatUnits(BigInt(claimData.claimSignature.amount), 18)
-              );
-              return `Claim ${claimAmount.toFixed(0)} $BRND`;
+
+            // If user has shared, show claim button
+            if (authData?.todaysVoteStatus?.hasShared) {
+              if (isClaiming || isClaimPending || isClaimConfirming) {
+                if (isClaimPending) return "⏳ Confirm in wallet...";
+                if (isClaimConfirming) return "🔄 Processing...";
+                return "💰 Claiming...";
+              }
+              if (claimData) {
+                const claimAmount = parseFloat(
+                  formatUnits(BigInt(claimData.claimSignature.amount), 18)
+                );
+                return `Claim ${claimAmount.toFixed(0)} $BRND`;
+              }
+              return "Claim";
             }
-            return "Claim";
-          }
 
-          // If user has voted, show share button
-          if (authData?.todaysVoteStatus?.hasVoted || hasVotedOnChain) {
-            if (isSharing) return "Sharing...";
-            if (isVerifying) return "Verifying Share";
-            return "Share now";
-          }
-
-          // Otherwise, show vote button with status
-          const nextAction = getNextAction();
-          let buttonLabel = nextAction.label;
-
-          const hasApprovalError =
-            contractError &&
-            (isApproving ||
-              contractError.toLowerCase().includes("approval") ||
-              contractError.toLowerCase().includes("approve")) &&
-            !isPending &&
-            !isConfirming;
-          const hasVotingError =
-            contractError &&
-            (isVoting || contractError.toLowerCase().includes("vote")) &&
-            !isPending &&
-            !isConfirming;
-          const hasGeneralError =
-            contractError &&
-            !isPending &&
-            !isConfirming &&
-            !isApproving &&
-            !isVoting;
-
-          if (isApproving) {
-            if (hasApprovalError) {
-              buttonLabel = "❌ Approval Failed - Try Again";
-            } else if (isPending) {
-              buttonLabel = "⏳ Approve BRND spending...";
-            } else if (isConfirming) {
-              buttonLabel = "🔄 Approving BRND spending...";
-            } else {
-              buttonLabel = "✅ Approval Complete - Preparing vote...";
+            // If user has voted, show share button
+            if (authData?.todaysVoteStatus?.hasVoted || hasVotedOnChain) {
+              if (isSharing) return "Sharing...";
+              if (isVerifying) return "Verifying Share";
+              return "Share now";
             }
-          } else if (isVoting) {
-            if (hasVotingError) {
-              buttonLabel = "❌ Vote Failed - Try Again";
-            } else if (isPending) {
-              buttonLabel = "⏳ Confirm in wallet...";
-            } else if (isConfirming) {
-              buttonLabel = "🔄 Processing vote...";
-            } else {
-              buttonLabel = "🗳️ Vote Now";
+
+            // Otherwise, show vote button with status
+            const nextAction = getNextAction();
+            let buttonLabel = nextAction.label;
+
+            const hasApprovalError =
+              contractError &&
+              (isApproving ||
+                contractError.toLowerCase().includes("approval") ||
+                contractError.toLowerCase().includes("approve")) &&
+              !isPending &&
+              !isConfirming;
+            const hasVotingError =
+              contractError &&
+              (isVoting || contractError.toLowerCase().includes("vote")) &&
+              !isPending &&
+              !isConfirming;
+            const hasGeneralError =
+              contractError &&
+              !isPending &&
+              !isConfirming &&
+              !isApproving &&
+              !isVoting;
+
+            if (isApproving) {
+              if (hasApprovalError) {
+                buttonLabel = "❌ Approval Failed - Try Again";
+              } else if (isPending) {
+                buttonLabel = "⏳ Approve BRND spending...";
+              } else if (isConfirming) {
+                buttonLabel = "🔄 Approving BRND spending...";
+              } else {
+                buttonLabel = "✅ Approval Complete - Preparing vote...";
+              }
+            } else if (isVoting) {
+              if (hasVotingError) {
+                buttonLabel = "❌ Vote Failed - Try Again";
+              } else if (isPending) {
+                buttonLabel = "⏳ Confirm in wallet...";
+              } else if (isConfirming) {
+                buttonLabel = "🔄 Processing vote...";
+              } else {
+                buttonLabel = "🗳️ Vote Now";
+              }
+            } else if (hasApprovalError || hasGeneralError) {
+              buttonLabel = "❌ Transaction Failed - Try Again";
+            } else if (isPending || isConfirming) {
+              if (isPending) {
+                buttonLabel = "⏳ Confirm transaction in wallet...";
+              } else if (isConfirming) {
+                buttonLabel = "🔄 Processing transaction...";
+              } else {
+                buttonLabel = nextAction.label;
+              }
+            } else if (isVotingOnChain) {
+              if (isPending) {
+                buttonLabel = "⏳ Confirm in wallet...";
+              } else if (isConfirming) {
+                buttonLabel = "🔄 Processing vote...";
+              } else {
+                buttonLabel = "🔄 Completing vote...";
+              }
             }
-          } else if (hasApprovalError || hasGeneralError) {
-            buttonLabel = "❌ Transaction Failed - Try Again";
-          } else if (isPending || isConfirming) {
-            if (isPending) {
-              buttonLabel = "⏳ Confirm transaction in wallet...";
-            } else if (isConfirming) {
-              buttonLabel = "🔄 Processing transaction...";
-            } else {
-              buttonLabel = nextAction.label;
+
+            return buttonLabel;
+          })()}
+          buttonDisabled={(() => {
+            // If claimed, disable button
+            if (authData?.todaysVoteStatus?.hasClaimed) {
+              return true;
             }
-          } else if (isVotingOnChain) {
-            if (isPending) {
-              buttonLabel = "⏳ Confirm in wallet...";
-            } else if (isConfirming) {
-              buttonLabel = "🔄 Processing vote...";
-            } else {
-              buttonLabel = "🔄 Completing vote...";
+
+            // If shared, disable only during claim operations
+            if (authData?.todaysVoteStatus?.hasShared) {
+              return isClaiming || isClaimPending || isClaimConfirming;
             }
-          }
 
-          return buttonLabel;
-        })()}
-        buttonDisabled={(() => {
-          // If claimed, disable button
-          if (authData?.todaysVoteStatus?.hasClaimed) {
-            return true;
-          }
+            // If voted, disable only during share operations
+            if (authData?.todaysVoteStatus?.hasVoted || hasVotedOnChain) {
+              return isSharing || isVerifying;
+            }
 
-          // If shared, disable only during claim operations
-          if (authData?.todaysVoteStatus?.hasShared) {
-            return isClaiming || isClaimPending || isClaimConfirming;
-          }
+            // Otherwise, use vote button disabled logic
+            let buttonDisabled = false;
+            const hasApprovalError =
+              contractError &&
+              (isApproving ||
+                contractError.toLowerCase().includes("approval") ||
+                contractError.toLowerCase().includes("approve")) &&
+              !isPending &&
+              !isConfirming;
+            const hasVotingError =
+              contractError &&
+              (isVoting || contractError.toLowerCase().includes("vote")) &&
+              !isPending &&
+              !isConfirming;
+            const hasGeneralError =
+              contractError &&
+              !isPending &&
+              !isConfirming &&
+              !isApproving &&
+              !isVoting;
 
-          // If voted, disable only during share operations
-          if (authData?.todaysVoteStatus?.hasVoted || hasVotedOnChain) {
-            return isSharing || isVerifying;
-          }
+            if (isApproving) {
+              buttonDisabled = (isPending || isConfirming) && !hasApprovalError;
+            } else if (isVoting) {
+              buttonDisabled = (isPending || isConfirming) && !hasVotingError;
+            } else if (hasApprovalError || hasGeneralError) {
+              buttonDisabled = false;
+            } else if (isPending || isConfirming) {
+              buttonDisabled = isPending || isConfirming;
+            } else if (isVotingOnChain) {
+              buttonDisabled = true;
+            }
 
-          // Otherwise, use vote button disabled logic
-          let buttonDisabled = false;
-          const hasApprovalError =
-            contractError &&
-            (isApproving ||
-              contractError.toLowerCase().includes("approval") ||
-              contractError.toLowerCase().includes("approve")) &&
-            !isPending &&
-            !isConfirming;
-          const hasVotingError =
-            contractError &&
-            (isVoting || contractError.toLowerCase().includes("vote")) &&
-            !isPending &&
-            !isConfirming;
-          const hasGeneralError =
-            contractError &&
-            !isPending &&
-            !isConfirming &&
-            !isApproving &&
-            !isVoting;
-
-          if (isApproving) {
-            buttonDisabled = (isPending || isConfirming) && !hasApprovalError;
-          } else if (isVoting) {
-            buttonDisabled = (isPending || isConfirming) && !hasVotingError;
-          } else if (hasApprovalError || hasGeneralError) {
-            buttonDisabled = false;
-          } else if (isPending || isConfirming) {
-            buttonDisabled = isPending || isConfirming;
-          } else if (isVotingOnChain) {
-            buttonDisabled = true;
-          }
-
-          return buttonDisabled;
-        })()}
-        buttonVariant={(() => {
-          const nextAction = getNextAction();
-          return nextAction.variant;
-        })()}
-      />
+            return buttonDisabled;
+          })()}
+          buttonVariant={(() => {
+            const nextAction = getNextAction();
+            return nextAction.variant;
+          })()}
+        />
+      ) : (
+        <Button
+          caption="Buy $BRND"
+          onClick={() => {
+            sdk.actions.swapToken({
+              sellToken:
+                "eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              buyToken:
+                "eip155:8453/erc20:0x41Ed0311640A5e489A90940b1c33433501a21B07",
+              sellAmount: "1000000",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

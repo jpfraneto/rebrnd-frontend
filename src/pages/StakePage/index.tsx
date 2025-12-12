@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useConnect } from "wagmi";
 import { useContractWagmi } from "@/shared/hooks/contract/useContractWagmi";
@@ -22,9 +22,9 @@ export default function StakePage() {
   const [optimisticStakedAmount, setOptimisticStakedAmount] = useState<
     string | null
   >(null);
-  const [_optimisticVaultShares, setOptimisticVaultShares] = useState<
-    string | null
-  >(null);
+
+  // State for withdrawal delay countdown
+  const [secondsUntilWithdrawable, setSecondsUntilWithdrawable] = useState(0);
 
   const { connect, connectors } = useConnect();
 
@@ -32,13 +32,19 @@ export default function StakePage() {
     isConnected,
     brndBalance,
     stakedBrndAmount,
-    vaultShares,
     stakeBrnd,
     withdrawBrnd,
     isPending,
     isConfirming,
     error,
     isLoadingBrndBalances,
+    // Withdrawal delay data
+    withdrawDelayTimeSeconds,
+    getSecondsUntilWithdrawable,
+    isWithdrawAvailable,
+    formatTimeRemaining,
+    isLoadingWithdrawDelayInfo,
+    refreshBrndBalances,
   } = useContractWagmi(
     // onStakeSuccess
     (txData) => {
@@ -46,29 +52,15 @@ export default function StakePage() {
       sdk.haptics.notificationOccurred("success");
       setTxHash(txData.txHash);
       setShowSuccess(true);
-
-      // Optimistically update balances
-      const stakedAmountValue = parseFloat(stakeAmount);
-      if (stakedAmountValue > 0) {
-        const newBrndBalance = (
-          parseFloat(brndBalance) - stakedAmountValue
-        ).toString();
-        const newStakedAmount = (
-          parseFloat(stakedBrndAmount) + stakedAmountValue
-        ).toString();
-        // Note: vault shares would need to be calculated based on exchange rate,
-        // but for simplicity we'll let the contract data refresh handle it
-        setOptimisticBrndBalance(newBrndBalance);
-        setOptimisticStakedAmount(newStakedAmount);
-      }
-
       setStakeAmount("");
+
+      // Clear any existing optimistic updates immediately
+      setOptimisticBrndBalance(null);
+      setOptimisticStakedAmount(null);
+
       setTimeout(() => {
         setShowSuccess(false);
-        // Clear optimistic updates after 10 seconds to let real data refresh
-        setOptimisticBrndBalance(null);
-        setOptimisticStakedAmount(null);
-      }, 10000);
+      }, 5000);
     },
     // onWithdrawSuccess
     (txData) => {
@@ -76,40 +68,56 @@ export default function StakePage() {
       sdk.haptics.notificationOccurred("success");
       setTxHash(txData.txHash);
       setShowSuccess(true);
-
-      // Optimistically update balances for withdrawal
-      const withdrawnShares = parseFloat(withdrawAmount);
-      if (withdrawnShares > 0) {
-        // For withdrawal, we're removing vault shares and adding back BRND
-        // The exact BRND amount would depend on exchange rate, but we'll approximate
-        const newVaultShares = (
-          parseFloat(vaultShares) - withdrawnShares
-        ).toString();
-        const newStakedAmount = (
-          parseFloat(stakedBrndAmount) - withdrawnShares
-        ).toString();
-        // Approximate BRND return (1:1 ratio for simplicity)
-        const newBrndBalance = (
-          parseFloat(brndBalance) + withdrawnShares
-        ).toString();
-
-        setOptimisticVaultShares(newVaultShares);
-        setOptimisticStakedAmount(newStakedAmount);
-        setOptimisticBrndBalance(newBrndBalance);
-      }
-
       setWithdrawAmount("");
+
+      // Clear any existing optimistic updates immediately
+      setOptimisticBrndBalance(null);
+      setOptimisticStakedAmount(null);
+
       setTimeout(() => {
         setShowSuccess(false);
-        // Clear optimistic updates after 10 seconds to let real data refresh
-        setOptimisticBrndBalance(null);
-        setOptimisticStakedAmount(null);
-        setOptimisticVaultShares(null);
-      }, 10000);
+      }, 5000);
     }
   );
 
+  // Update withdrawal delay countdown every second
+  useEffect(() => {
+    if (!isConnected || !getSecondsUntilWithdrawable) return;
+
+    const updateCountdown = () => {
+      const remaining = getSecondsUntilWithdrawable();
+      setSecondsUntilWithdrawable(remaining);
+    };
+
+    // Update immediately
+    updateCountdown();
+
+    // Set up interval only if there's time remaining
+    const remaining = getSecondsUntilWithdrawable();
+    if (remaining > 0) {
+      const interval = setInterval(updateCountdown, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, getSecondsUntilWithdrawable, activeTab]);
+
+  // Refresh balances when switching tabs to ensure latest data
+  useEffect(() => {
+    if (isConnected && refreshBrndBalances) {
+      // Clear optimistic updates when switching tabs
+      setOptimisticBrndBalance(null);
+      setOptimisticStakedAmount(null);
+
+      // Refresh balances
+      refreshBrndBalances();
+    }
+  }, [activeTab, isConnected, refreshBrndBalances]);
+
   const handleStake = () => {
+    console.log(
+      "inside the handleStake function",
+      stakeAmount,
+      getDisplayBrndBalance()
+    );
     if (!stakeAmount || parseFloat(stakeAmount) <= 0) return;
     if (parseFloat(stakeAmount) > parseFloat(getDisplayBrndBalance())) {
       return;
@@ -119,15 +127,15 @@ export default function StakePage() {
 
   const handleWithdraw = () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
-    
+
     const withdrawAmountNum = parseFloat(withdrawAmount);
     const availableBrndAmount = parseFloat(getDisplayStakedAmount());
-    
+
     // Validate against BRND amount, not vault shares
     if (withdrawAmountNum > availableBrndAmount) {
       return;
     }
-    
+
     // Convert BRND amount to vault shares for the contract call
     // Since we're using ERC4626 redeem, we need to calculate the equivalent shares
     // For simplicity, we'll use a 1:1 approximation, but the hook will handle exact conversion
@@ -142,13 +150,15 @@ export default function StakePage() {
 
   const setMaxStake = () => {
     sdk.haptics.selectionChanged();
-    const balance = getDisplayBrndBalance();
+
+    // Always use the real balance, not optimistic updates
+    const balance = brndBalance;
     const balanceNum = parseFloat(balance);
-    
-    // Ensure we don't exceed the actual balance - round down aggressively
-    if (balanceNum > 0) {
-      // Round down to whole number to ensure we never exceed balance
-      const maxAmount = Math.floor(balanceNum);
+
+    // Round down to whole number (no decimals)
+    const maxAmount = Math.floor(balanceNum);
+
+    if (maxAmount > 0) {
       setStakeAmount(maxAmount.toString());
     } else {
       setStakeAmount("0");
@@ -157,13 +167,15 @@ export default function StakePage() {
 
   const setMaxWithdraw = () => {
     sdk.haptics.selectionChanged();
-    const stakedBalance = getDisplayStakedAmount();
+
+    // Always use the real staked balance, not optimistic updates
+    const stakedBalance = stakedBrndAmount;
     const stakedNum = parseFloat(stakedBalance);
-    
-    // Ensure we don't exceed the actual staked amount - round down aggressively
-    if (stakedNum > 0) {
-      // Round down to whole number to ensure we never exceed staked balance
-      const maxAmount = Math.floor(stakedNum);
+
+    // Round down to whole number (no decimals)
+    const maxAmount = Math.floor(stakedNum);
+
+    if (maxAmount > 0) {
       setWithdrawAmount(maxAmount.toString());
     } else {
       setWithdrawAmount("0");
@@ -342,18 +354,31 @@ export default function StakePage() {
                     <input
                       type="number"
                       value={stakeAmount}
-                      onChange={(e) => setStakeAmount(e.target.value)}
-                      placeholder="0.00"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Remove decimals - only allow whole numbers
+                        const wholeNumber = value.includes(".")
+                          ? value.split(".")[0]
+                          : value;
+                        setStakeAmount(wholeNumber);
+                      }}
+                      placeholder="0"
+                      step="1"
+                      min="0"
                       className={styles.input}
                       disabled={
-                        isPending || isConfirming || isLoadingBrndBalances
+                        isPending ||
+                        isConfirming ||
+                        (isLoadingBrndBalances && !brndBalance)
                       }
                     />
                     <button
                       onClick={setMaxStake}
                       className={styles.maxButton}
                       disabled={
-                        isPending || isConfirming || isLoadingBrndBalances
+                        isPending ||
+                        isConfirming ||
+                        (isLoadingBrndBalances && !brndBalance)
                       }
                     >
                       MAX
@@ -378,15 +403,6 @@ export default function StakePage() {
                       : "Stake $BRND"
                   }
                   onClick={handleStake}
-                  disabled={
-                    isPending ||
-                    isConfirming ||
-                    !stakeAmount ||
-                    parseFloat(stakeAmount) <= 0 ||
-                    parseFloat(stakeAmount) >
-                      parseFloat(getDisplayBrndBalance()) ||
-                    isLoadingBrndBalances
-                  }
                   loading={isConfirming}
                 />
               </div>
@@ -401,36 +417,76 @@ export default function StakePage() {
                     <input
                       type="number"
                       value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="0.00"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Remove decimals - only allow whole numbers
+                        const wholeNumber = value.includes(".")
+                          ? value.split(".")[0]
+                          : value;
+                        setWithdrawAmount(wholeNumber);
+                      }}
+                      placeholder="0"
+                      step="1"
+                      min="0"
                       className={`${styles.input} ${styles.inputWithdraw}`}
                       disabled={
-                        isPending || isConfirming || isLoadingBrndBalances
+                        isPending ||
+                        isConfirming ||
+                        (isLoadingBrndBalances && !stakedBrndAmount)
                       }
                       max={
                         activeTab === "withdraw"
                           ? parseFloat(getDisplayStakedAmount())
                           : parseFloat(getDisplayBrndBalance())
                       }
-                      min={0}
                     />
                     <button
                       onClick={setMaxWithdraw}
                       className={`${styles.maxButton} ${styles.maxButtonWithdraw}`}
                       disabled={
-                        isPending || isConfirming || isLoadingBrndBalances
+                        isPending ||
+                        isConfirming ||
+                        (isLoadingBrndBalances && !stakedBrndAmount)
                       }
                     >
                       MAX
                     </button>
                   </div>
                   {withdrawAmount &&
-                    parseFloat(withdrawAmount) > parseFloat(getDisplayStakedAmount()) && (
+                    parseFloat(withdrawAmount) >
+                      parseFloat(getDisplayStakedAmount()) && (
                       <p className={styles.errorText}>
                         ⚠️ INSUFFICIENT STAKED BALANCE
                       </p>
                     )}
                 </div>
+
+                {/* Withdrawal delay warning */}
+                {!isLoadingWithdrawDelayInfo &&
+                  secondsUntilWithdrawable > 0 && (
+                    <div className={styles.withdrawalDelayWarning}>
+                      <Typography variant="geist" weight="medium" size={14}>
+                        ⏰ Withdrawal Delay Active
+                      </Typography>
+                      <Typography
+                        variant="geist"
+                        size={14}
+                        className={styles.delayText}
+                      >
+                        You can withdraw again in{" "}
+                        {formatTimeRemaining(secondsUntilWithdrawable)}
+                      </Typography>
+                      <Typography
+                        variant="geist"
+                        size={12}
+                        className={styles.delaySubtext}
+                      >
+                        The vault has a{" "}
+                        {Math.floor(withdrawDelayTimeSeconds / 60)} minute delay
+                        between deposits and withdrawals for security.
+                      </Typography>
+                    </div>
+                  )}
 
                 <Button
                   variant="primary"
@@ -447,8 +503,11 @@ export default function StakePage() {
                     isConfirming ||
                     !withdrawAmount ||
                     parseFloat(withdrawAmount) <= 0 ||
-                    parseFloat(withdrawAmount) > parseFloat(getDisplayStakedAmount()) ||
-                    isLoadingBrndBalances
+                    parseFloat(withdrawAmount) >
+                      parseFloat(getDisplayStakedAmount()) ||
+                    isLoadingBrndBalances ||
+                    !isWithdrawAvailable() ||
+                    isLoadingWithdrawDelayInfo
                   }
                   loading={isConfirming}
                 />

@@ -2,6 +2,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+// Hooks
+import { useAuth } from "@/shared/hooks/auth/useAuth";
+
 // StyleSheet
 import styles from "./AirdropBanner.module.scss";
 import Typography from "../Typography";
@@ -10,11 +13,19 @@ import sdk from "@farcaster/miniapp-sdk";
 
 function AirdropBanner(): React.ReactNode {
   const navigate = useNavigate();
-  sdk.haptics.selectionChanged();
+  const { data: authData } = useAuth();
 
   const handleClick = () => {
     sdk.haptics.selectionChanged();
-    navigate("/airdrop");
+    
+    // Navigate to user's specific airdrop page
+    const userFid = authData?.fid;
+    if (userFid) {
+      navigate(`/airdrop/${userFid}`);
+    } else {
+      // Fallback to general airdrop page if no FID available
+      navigate("/airdrop");
+    }
   };
 
   return (
